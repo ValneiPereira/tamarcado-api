@@ -32,7 +32,7 @@ public interface ProfessionalJpaRepository extends JpaRepository<Professional, U
             FROM professionals p
             INNER JOIN users u ON u.id = p.id
             INNER JOIN addresses a ON a.id = u.address_id
-            INNER JOIN services s ON s.professional_id = p.id
+            INNER JOIN service_offerings s ON s.professional_id = p.id
             WHERE s.id = :serviceId
               AND s.active = true
               AND p.active = true

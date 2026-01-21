@@ -14,16 +14,16 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "services", indexes = {
-    @Index(name = "idx_service_professional", columnList = "professional_id"),
-    @Index(name = "idx_service_active", columnList = "active")
+@Table(name = "service_offerings", indexes = {
+    @Index(name = "idx_service_offering_professional", columnList = "professional_id"),
+    @Index(name = "idx_service_offering_active", columnList = "active")
 })
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public class Service {
+public class ServiceOffering {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

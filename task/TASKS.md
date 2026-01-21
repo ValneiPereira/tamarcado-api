@@ -4,9 +4,9 @@
 
 - [x] **TASK-BE-001**: Setup do Projeto Backend ✅
 - [x] **TASK-BE-002**: Configurar Segurança e JWT ✅
-- [ ] **TASK-BE-003**: Modelagem do Banco de Dados
-- [ ] **TASK-BE-004**: Repositories
-- [ ] **TASK-BE-005**: Implementar Autenticação
+- [x] **TASK-BE-003**: Modelagem do Banco de Dados
+- [x] **TASK-BE-004**: Repositories
+- [x] **TASK-BE-005**: Implementar Autenticação
 - [ ] **TASK-BE-006**: Implementar Geocoding
 - [ ] **TASK-BE-007**: Implementar UserController
 - [ ] **TASK-BE-008**: Implementar Busca de Serviços
@@ -85,7 +85,7 @@
 - [ ] Criar entidades JPA:
   - [ ] User
   - [ ] Professional
-  - [ ] Service
+  - [ ] ServiceOffering
   - [ ] Appointment
   - [ ] Review
   - [ ] Address
