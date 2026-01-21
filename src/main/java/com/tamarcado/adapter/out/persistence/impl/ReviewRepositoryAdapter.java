@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.ReviewJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.ReviewJpaRepository;
 import com.tamarcado.application.port.out.ReviewRepositoryPort;
 import com.tamarcado.domain.model.review.Review;
 import lombok.RequiredArgsConstructor;

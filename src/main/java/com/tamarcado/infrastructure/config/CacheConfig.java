@@ -35,6 +35,9 @@ public class CacheConfig {
         
         // Cache de geocoding - endereços por CEP (30 dias)
         cacheConfigurations.put("geocoding:address", defaultConfig.entryTtl(Duration.ofDays(30)));
+        
+        // Cache de busca de serviços (1 hora)
+        cacheConfigurations.put("serviceSearch", defaultConfig.entryTtl(Duration.ofHours(1)));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)

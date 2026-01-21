@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.AppointmentJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.AppointmentJpaRepository;
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
 import com.tamarcado.domain.model.appointment.Appointment;
 import com.tamarcado.domain.model.appointment.AppointmentStatus;
