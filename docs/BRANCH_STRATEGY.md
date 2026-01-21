@@ -75,7 +75,7 @@ task/be-003-database-modeling (feature)
 ### Formato
 
 ```
-tipo(escopo): descrição curta
+[TASK-BE-XXX] tipo(escopo): descrição curta
 
 Descrição detalhada (opcional)
 
@@ -83,6 +83,8 @@ Descrição detalhada (opcional)
 
 [rodapé opcional]
 ```
+
+**Importante:** Todas as mensagens de commit devem começar com `[TASK-BE-XXX]` onde XXX é o número da task relacionada.
 
 ### Tipos
 
@@ -97,18 +99,20 @@ Descrição detalhada (opcional)
 ### Exemplos
 
 ```bash
-feat(security): implementa JWT token provider
+[TASK-BE-002] feat(security): implementa JWT token provider
 
 Adiciona classe JwtTokenProvider com geração e validação
 de tokens JWT usando jjwt 0.12.3
 
-fix(auth): corrige validação de token expirado
+[TASK-BE-002] fix(security): corrige validação de token expirado
 
 O token estava sendo considerado válido mesmo após expiração
 
-docs(readme): atualiza instruções de instalação
+[TASK-BE-001] docs(readme): atualiza instruções de instalação
 
-test(repository): adiciona testes para UserRepository
+[TASK-BE-004] test(repository): adiciona testes para UserRepository
+
+[TASK-BE-003] feat(domain): cria entidades User e Professional
 ```
 
 ---
