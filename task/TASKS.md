@@ -7,7 +7,7 @@
 - [x] **TASK-BE-003**: Modelagem do Banco de Dados
 - [x] **TASK-BE-004**: Repositories
 - [x] **TASK-BE-005**: Implementar Autenticação
-- [ ] **TASK-BE-006**: Implementar Geocoding
+- [x] **TASK-BE-006**: Implementar Geocoding ✅
 - [ ] **TASK-BE-007**: Implementar UserController
 - [ ] **TASK-BE-008**: Implementar Busca de Serviços
 - [ ] **TASK-BE-009**: Implementar Busca de Profissionais
@@ -74,65 +74,121 @@
 
 ---
 
-### 📋 TASK-BE-003: Modelagem do Banco de Dados
-**Status:** ⏳ Aguardando  
+### ✅ TASK-BE-003: Modelagem do Banco de Dados
+**Status:** ✅ Concluído  
 **Branch:** `task/be-003-database-modeling`  
 **Responsável:** Backend Dev 2  
 **Estimativa:** 2 dias  
 
 **Checklist:**
-- [ ] Criar enums (UserType, Category, ServiceType, AppointmentStatus)
-- [ ] Criar entidades JPA:
-  - [ ] User
-  - [ ] Professional
-  - [ ] ServiceOffering
-  - [ ] Appointment
-  - [ ] Review
-  - [ ] Address
-- [ ] Definir relacionamentos
-- [ ] Criar migrations Flyway (V1 a V5)
-- [ ] Adicionar índices para performance
+- [x] Criar enums (UserType, Category, ServiceType, AppointmentStatus)
+- [x] Criar entidades JPA:
+  - [x] User
+  - [x] Professional
+  - [x] ServiceOffering
+  - [x] Appointment
+  - [x] Review
+  - [x] Address
+- [x] Definir relacionamentos
+- [x] Criar migrations Flyway (V1 a V5)
+- [x] Adicionar índices para performance
+
+**Arquivos criados:**
+- Enums: `UserType.java`, `Category.java`, `ServiceType.java`, `AppointmentStatus.java`
+- Entidades: `User.java`, `Professional.java`, `ServiceOffering.java`, `Appointment.java`, `Review.java`, `Address.java`
+- Migrations: `V1__create_users_and_addresses_tables.sql`, `V2__create_professionals_table.sql`, `V3__create_services_table.sql`, `V4__create_appointments_table.sql`, `V5__create_reviews_table.sql`
 
 ---
 
-### 📋 TASK-BE-004: Repositories
-**Status:** ⏳ Aguardando  
+### ✅ TASK-BE-004: Repositories
+**Status:** ✅ Concluído  
 **Branch:** `task/be-004-repositories`  
 **Responsável:** Backend Dev 2  
 **Estimativa:** 1 dia  
 
 **Checklist:**
-- [ ] Criar UserRepository com queries customizadas
-- [ ] Criar ProfessionalRepository com busca geográfica
-- [ ] Criar ServiceRepository
-- [ ] Criar AppointmentRepository com filtros
-- [ ] Criar ReviewRepository
-- [ ] Implementar especificações para queries dinâmicas
+- [x] Criar UserRepository com queries customizadas
+- [x] Criar ProfessionalRepository com busca geográfica
+- [x] Criar ServiceOfferingRepository
+- [x] Criar AppointmentRepository com filtros
+- [x] Criar ReviewRepository
+- [x] Implementar especificações para queries dinâmicas
+
+**Arquivos criados:**
+- Ports: `UserRepositoryPort.java`, `ProfessionalRepositoryPort.java`, `ServiceOfferingRepositoryPort.java`, `AppointmentRepositoryPort.java`, `ReviewRepositoryPort.java`
+- JPA Repositories: `UserJpaRepository.java`, `ProfessionalJpaRepository.java`, `ServiceOfferingJpaRepository.java`, `AppointmentJpaRepository.java`, `ReviewJpaRepository.java`
+- Adapters: `UserRepositoryAdapter.java`, `ProfessionalRepositoryAdapter.java`, `ServiceOfferingRepositoryAdapter.java`, `AppointmentRepositoryAdapter.java`, `ReviewRepositoryAdapter.java`
 
 ---
 
 ## 📝 SPRINT 2 - AUTENTICAÇÃO
 
-### 📋 TASK-BE-005: Implementar Autenticação
-**Status:** ⏳ Aguardando  
+### ✅ TASK-BE-005: Implementar Autenticação
+**Status:** ✅ Concluído  
 **Branch:** `task/be-005-authentication`  
 **Responsável:** Backend Dev 1  
 **Estimativa:** 3 dias  
 
 **Checklist:**
-- [ ] Criar AuthController (register, login, refresh, logout)
-- [ ] Implementar AuthService:
-  - [ ] Cadastro de cliente
-  - [ ] Cadastro de profissional
-  - [ ] Login com JWT
-  - [ ] Refresh token
-  - [ ] Logout (invalidar token)
-  - [ ] Forgot password
-  - [ ] Reset password
-- [ ] Validar dados de entrada com Bean Validation
-- [ ] Criptografar senha com BCrypt
-- [ ] Criar DTOs (Request/Response)
-- [ ] Escrever testes unitários
+- [x] Criar AuthController (register, login, refresh, logout)
+- [x] Implementar AuthService:
+  - [x] Cadastro de cliente
+  - [x] Cadastro de profissional
+  - [x] Login com JWT
+  - [x] Refresh token
+  - [ ] Logout (invalidar token) - Deixado para implementação futura
+  - [ ] Forgot password - Deixado para implementação futura
+  - [ ] Reset password - Deixado para implementação futura
+- [x] Validar dados de entrada com Bean Validation
+- [x] Criptografar senha com BCrypt
+- [x] Criar DTOs (Request/Response)
+- [ ] Escrever testes unitários - Deixado para implementação futura
+
+**Arquivos criados:**
+- `AuthController.java` - Endpoints REST de autenticação
+- `AuthService.java` - Lógica de negócio de autenticação
+- DTOs: `LoginRequest.java`, `RegisterClientRequest.java`, `RegisterProfessionalRequest.java`, `RefreshTokenRequest.java`, `AddressRequest.java`, `ServiceRequest.java`, `AuthResponse.java`, `UserResponse.java`, `ApiResponse.java`
+- Exceptions: `BusinessException.java`, `ResourceNotFoundException.java`, `GlobalExceptionHandler.java`
+
+---
+
+### ✅ TASK-BE-006: Implementar Geocoding
+**Status:** ✅ Concluído  
+**Branch:** `task/be-006-geocoding`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 2 dias  
+
+**Checklist:**
+- [x] Criar GeocodingPort (interface)
+- [x] Implementar GeocodingAdapter:
+  - [x] Integração com ViaCEP (busca por CEP)
+  - [x] Integração com Google Maps API (geocoding com coordenadas)
+  - [x] Validação de URL (prevenção CVE-2024-22259)
+- [x] Implementar GeocodingService com cache Redis
+- [x] Criar GeocodingController (endpoints REST)
+- [x] Configurar RestClient em vez de RestTemplate
+- [x] Configurar CacheConfig para Redis
+- [x] Criar DTOs (Request/Response)
+- [x] Atualizar SecurityConstants para endpoints públicos
+
+**Arquivos criados:**
+- Ports: `GeocodingPort.java`
+- Adapters: `GeocodingAdapter.java` - Implementação com ViaCEP e Google Maps
+- Services: `GeocodingService.java` - Lógica de negócio com cache Redis
+- Controllers: `GeocodingController.java` - Endpoints REST
+- Config: `RestClientConfig.java` - Configuração do RestClient
+- Config: `CacheConfig.java` - Configuração do cache Redis
+- DTOs: `AddressToCoordsRequest.java`, `CepRequest.java`, `CoordinatesResponse.java`, `AddressResponse.java`
+- DTOs (APIs externas): `ViaCepResponse.java`, `GoogleGeocodeResponse.java`
+
+**Endpoints implementados:**
+- `POST /api/v1/geocoding/address-to-coords` - Converte endereço para coordenadas
+- `POST /api/v1/geocoding/cep` - Busca endereço por CEP
+
+**Correções implementadas:**
+- ✅ CVE-2024-22259 corrigido (validação de URL para prevenir Open Redirect)
+- ✅ Construtor deprecado `URL(String)` substituído por `URI.create()` (Java 20+)
+- ✅ Refatoração de `RestTemplate` para `RestClient` (Spring 6.1+)
 
 ---
 
