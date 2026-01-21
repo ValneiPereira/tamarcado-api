@@ -1,8 +1,10 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.ServiceOfferingJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.ServiceOfferingJpaRepository;
 import com.tamarcado.application.port.out.ServiceOfferingRepositoryPort;
+import com.tamarcado.domain.model.service.Category;
 import com.tamarcado.domain.model.service.ServiceOffering;
+import com.tamarcado.domain.model.service.ServiceType;
 import com.tamarcado.domain.model.user.Professional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -55,5 +57,10 @@ public class ServiceOfferingRepositoryAdapter implements ServiceOfferingReposito
     @Override
     public long countByProfessionalIdAndActiveTrue(UUID professionalId) {
         return jpaRepository.countByProfessionalIdAndActiveTrue(professionalId);
+    }
+
+    @Override
+    public List<ServiceOffering> findActiveServicesByCategoryAndType(Category category, ServiceType serviceType) {
+        return jpaRepository.findActiveServicesByCategoryAndType(category, serviceType);
     }
 }

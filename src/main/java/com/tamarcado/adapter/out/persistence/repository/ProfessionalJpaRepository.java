@@ -1,4 +1,4 @@
-package com.tamarcado.adapter.out.persistence.jpa;
+package com.tamarcado.adapter.out.persistence.repository;
 
 import com.tamarcado.domain.model.service.Category;
 import com.tamarcado.domain.model.service.ServiceType;

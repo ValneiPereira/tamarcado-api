@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.UserJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.UserJpaRepository;
 import com.tamarcado.application.port.out.UserRepositoryPort;
 import com.tamarcado.domain.model.user.User;
 import lombok.RequiredArgsConstructor;

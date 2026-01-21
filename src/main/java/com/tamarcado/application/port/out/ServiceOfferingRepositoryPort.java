@@ -1,6 +1,8 @@
 package com.tamarcado.application.port.out;
 
+import com.tamarcado.domain.model.service.Category;
 import com.tamarcado.domain.model.service.ServiceOffering;
+import com.tamarcado.domain.model.service.ServiceType;
 import com.tamarcado.domain.model.user.Professional;
 
 import java.util.List;
@@ -24,4 +26,9 @@ public interface ServiceOfferingRepositoryPort {
     void delete(ServiceOffering serviceOffering);
 
     long countByProfessionalIdAndActiveTrue(UUID professionalId);
+
+    /**
+     * Busca serviços ativos agrupados por categoria e tipo
+     */
+    List<ServiceOffering> findActiveServicesByCategoryAndType(Category category, ServiceType serviceType);
 }

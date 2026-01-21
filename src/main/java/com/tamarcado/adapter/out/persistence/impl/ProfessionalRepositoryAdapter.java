@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.ProfessionalJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.ProfessionalJpaRepository;
 import com.tamarcado.application.port.out.ProfessionalRepositoryPort;
 import com.tamarcado.domain.model.service.Category;
 import com.tamarcado.domain.model.service.ServiceType;
