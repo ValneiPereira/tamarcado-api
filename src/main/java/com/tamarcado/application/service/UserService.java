@@ -9,6 +9,7 @@ import com.tamarcado.shared.dto.request.UpdateUserRequest;
 import com.tamarcado.shared.dto.response.UserResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
+import com.tamarcado.shared.mapper.UserDtoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,7 @@ public class UserService {
 
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserDtoMapper userDtoMapper;
 
     /**
      * Obtém o perfil do usuário autenticado
@@ -39,7 +41,7 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        return toUserResponse(user);
+        return userDtoMapper.toResponse(user);
     }
 
     /**
@@ -71,7 +73,7 @@ public class UserService {
         User updatedUser = userRepository.save(user);
         log.info("Perfil do usuário {} atualizado", updatedUser.getId());
 
-        return toUserResponse(updatedUser);
+        return userDtoMapper.toResponse(updatedUser);
     }
 
     /**
@@ -149,17 +151,4 @@ public class UserService {
         }
     }
 
-    /**
-     * Converte User entity para UserResponse DTO
-     */
-    private UserResponse toUserResponse(User user) {
-        return new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getPhoto(),
-                user.getUserType()
-        );
-    }
 }
