@@ -4,7 +4,7 @@ CREATE TABLE appointments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     professional_id UUID NOT NULL REFERENCES professionals(id) ON DELETE CASCADE,
-    service_id UUID NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+    service_id UUID NOT NULL REFERENCES service_offerings(id) ON DELETE RESTRICT,
     date DATE NOT NULL,
     time TIME NOT NULL,
     notes VARCHAR(500),

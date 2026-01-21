@@ -1,6 +1,6 @@
 package com.tamarcado.domain.model.appointment;
 
-import com.tamarcado.domain.model.service.Service;
+import com.tamarcado.domain.model.service.ServiceOffering;
 import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.domain.model.user.User;
 import jakarta.persistence.*;
@@ -46,7 +46,7 @@ public class Appointment {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id", nullable = false)
-    private Service service;
+    private ServiceOffering serviceOffering;
 
     @Column(nullable = false)
     private LocalDate date;
