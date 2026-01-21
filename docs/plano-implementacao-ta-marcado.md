@@ -610,7 +610,7 @@ public class Professional {
     private ServiceType serviceType;
     
     @OneToMany(mappedBy = "professional")
-    private List<Service> services;
+    private List<ServiceOffering> serviceOfferings;
     
     private Double averageRating;
     
@@ -618,11 +618,11 @@ public class Professional {
 }
 ```
 
-### Service
+### ServiceOffering
 ```java
 @Entity
-@Table(name = "services")
-public class Service {
+@Table(name = "service_offerings")
+public class ServiceOffering {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -660,7 +660,7 @@ public class Appointment {
     
     @ManyToOne
     @JoinColumn(name = "service_id")
-    private Service service;
+    private ServiceOffering serviceOffering;
     
     private LocalDate date;
     
@@ -862,7 +862,7 @@ ta-marcado-backend/
 │   │   │       │   ├── entity/
 │   │   │       │   │   ├── User.java
 │   │   │       │   │   ├── Professional.java
-│   │   │       │   │   ├── Service.java
+│   │   │       │   │   ├── ServiceOffering.java
 │   │   │       │   │   ├── Appointment.java
 │   │   │       │   │   ├── Review.java
 │   │   │       │   │   └── Address.java

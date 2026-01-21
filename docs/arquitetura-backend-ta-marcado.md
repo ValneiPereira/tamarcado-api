@@ -151,7 +151,7 @@ com.tamarcado
 │   │   │   └── AppointmentStatus.java
 │   │   │
 │   │   ├── service/
-│   │   │   ├── Service.java
+│   │   │   ├── ServiceOffering.java
 │   │   │   ├── Category.java
 │   │   │   └── ServiceType.java
 │   │   │
