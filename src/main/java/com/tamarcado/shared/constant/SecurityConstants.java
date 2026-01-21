@@ -10,6 +10,7 @@ public final class SecurityConstants {
     // Endpoints públicos
     public static final String[] PUBLIC_ENDPOINTS = {
         "/api/v1/auth/**",
+        "/api/v1/geocoding/**",
         "/api/v1/swagger-ui/**",
         "/api/v1/api-docs/**",
         "/actuator/health",
