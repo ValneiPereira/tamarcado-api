@@ -3,7 +3,7 @@
 ## 🎯 Progresso Geral
 
 - [x] **TASK-BE-001**: Setup do Projeto Backend ✅
-- [ ] **TASK-BE-002**: Configurar Segurança e JWT
+- [x] **TASK-BE-002**: Configurar Segurança e JWT ✅
 - [ ] **TASK-BE-003**: Modelagem do Banco de Dados
 - [ ] **TASK-BE-004**: Repositories
 - [ ] **TASK-BE-005**: Implementar Autenticação
@@ -51,18 +51,26 @@
 
 ---
 
-### 🔄 TASK-BE-002: Configurar Segurança e JWT
-**Status:** 🔄 Em andamento  
+### ✅ TASK-BE-002: Configurar Segurança e JWT
+**Status:** ✅ Concluído  
 **Branch:** `task/be-002-security-jwt`  
 **Responsável:** Backend Dev 1  
 **Estimativa:** 2 dias  
 
 **Checklist:**
-- [ ] Implementar SecurityConfig
-- [ ] Criar JwtTokenProvider (geração e validação)
-- [ ] Implementar JwtAuthenticationFilter
-- [ ] Implementar Rate Limiting
-- [ ] Criar CustomUserDetailsService
+- [x] Implementar SecurityConfig
+- [x] Criar JwtTokenProvider (geração e validação)
+- [x] Implementar JwtAuthenticationFilter
+- [ ] Implementar Rate Limiting (opcional - deixado para futuro)
+- [x] Criar CustomUserDetailsService
+- [x] Criar SecurityUtils
+
+**Arquivos criados:**
+- `JwtTokenProvider.java` - Geração e validação de tokens JWT
+- `SecurityConfig.java` - Configuração do Spring Security
+- `JwtAuthenticationFilter.java` - Filtro para validar tokens
+- `CustomUserDetailsService.java` - Serviço para carregar usuários (mock temporário)
+- `SecurityUtils.java` - Utilitários de segurança
 
 ---
 
