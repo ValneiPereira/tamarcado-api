@@ -38,6 +38,9 @@ public class CacheConfig {
         
         // Cache de busca de serviços (1 hora)
         cacheConfigurations.put("serviceSearch", defaultConfig.entryTtl(Duration.ofHours(1)));
+        
+        // Cache de detalhes do profissional (30 minutos)
+        cacheConfigurations.put("professionalDetail", defaultConfig.entryTtl(Duration.ofMinutes(30)));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)

@@ -17,16 +17,20 @@ import com.tamarcado.shared.dto.response.AuthResponse;
 import com.tamarcado.shared.dto.response.UserResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
+import com.tamarcado.shared.mapper.AddressRequestMapper;
+import com.tamarcado.shared.mapper.UserDtoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.UUID;
 
 @Slf4j
@@ -40,6 +44,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final UserDtoMapper userDtoMapper;
+    private final AddressRequestMapper addressRequestMapper;
 
     @Transactional
     public AuthResponse registerClient(RegisterClientRequest request) {
@@ -49,15 +55,8 @@ public class AuthService {
             throw new BusinessException(ErrorMessages.USER_ALREADY_EXISTS);
         }
 
-        Address address = Address.builder()
-                .cep(request.address().cep())
-                .street(request.address().street())
-                .number(request.address().number())
-                .complement(request.address().complement())
-                .neighborhood(request.address().neighborhood())
-                .city(request.address().city())
-                .state(request.address().state())
-                .build();
+        // Converter AddressRequest para Address usando mapper
+        Address address = addressRequestMapper.toDomain(request.address());
 
         User user = User.builder()
                 .name(request.name())
@@ -73,6 +72,14 @@ public class AuthService {
 
         log.info("Cliente registrado com sucesso: {}", savedUser.getId());
 
+        // Criar autenticação antes de gerar tokens
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                savedUser.getEmail(),
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_CLIENT"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
         return createAuthResponse(savedUser);
     }
 
@@ -84,15 +91,8 @@ public class AuthService {
             throw new BusinessException(ErrorMessages.USER_ALREADY_EXISTS);
         }
 
-        Address address = Address.builder()
-                .cep(request.address().cep())
-                .street(request.address().street())
-                .number(request.address().number())
-                .complement(request.address().complement())
-                .neighborhood(request.address().neighborhood())
-                .city(request.address().city())
-                .state(request.address().state())
-                .build();
+
+        Address address = addressRequestMapper.toDomain(request.address());
 
         User user = User.builder()
                 .name(request.name())
@@ -117,7 +117,7 @@ public class AuthService {
 
         Professional savedProfessional = professionalRepository.save(professional);
 
-        // Criar serviços do profissional
+
         for (var serviceRequest : request.services()) {
             ServiceOffering serviceOffering = ServiceOffering.builder()
                     .professional(savedProfessional)
@@ -130,6 +130,14 @@ public class AuthService {
         }
 
         log.info("Profissional registrado com sucesso: {}", savedUser.getId());
+
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                savedUser.getEmail(),
+                null,
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_PROFESSIONAL"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
 
         return createAuthResponse(savedUser);
     }
@@ -174,7 +182,7 @@ public class AuthService {
             throw new BusinessException(ErrorMessages.UNAUTHORIZED);
         }
 
-        // Criar nova autenticação para gerar novos tokens
+
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(user.getEmail(), null, null);
 
@@ -189,14 +197,7 @@ public class AuthService {
         String accessToken = tokenProvider.generateToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
 
-        UserResponse userResponse = new UserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getPhone(),
-                user.getPhoto(),
-                user.getUserType()
-        );
+        UserResponse userResponse = userDtoMapper.toResponse(user);
 
         return new AuthResponse(
                 accessToken,

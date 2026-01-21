@@ -9,6 +9,7 @@ import com.tamarcado.domain.model.user.Address;
 import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.shared.dto.response.ProfessionalSearchResponse;
 import com.tamarcado.shared.dto.response.ServiceSearchResponse;
+import com.tamarcado.shared.mapper.ProfessionalDtoMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +30,7 @@ public class SearchService {
 
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
     private final ProfessionalRepositoryPort professionalRepository;
+    private final ProfessionalDtoMapper professionalDtoMapper;
 
     /**
      * Busca serviços agrupados por nome, categoria e tipo
@@ -171,16 +173,17 @@ public class SearchService {
                         }
                     }
 
+                    ProfessionalSearchResponse response = professionalDtoMapper.toSearchResponse(professional);
                     return new ProfessionalSearchResponse(
-                            professional.getId(),
-                            professional.getUser().getName(),
-                            professional.getUser().getEmail(),
-                            professional.getUser().getPhone(),
-                            professional.getUser().getPhoto(),
-                            professional.getCategory(),
-                            professional.getServiceType(),
-                            professional.getAverageRating(),
-                            professional.getTotalRatings(),
+                            response.id(),
+                            response.name(),
+                            response.email(),
+                            response.phone(),
+                            response.photo(),
+                            response.category(),
+                            response.serviceType(),
+                            response.averageRating(),
+                            response.totalRatings(),
                             distance
                     );
                 })
@@ -210,7 +213,7 @@ public class SearchService {
      * Calcula distância entre dois pontos usando fórmula de Haversine
      * Retorna distância em quilômetros
      */
-    private Double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    public Double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
         final int EARTH_RADIUS_KM = 6371;
 
         double lat1Rad = Math.toRadians(lat1);
