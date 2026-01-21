@@ -20,7 +20,7 @@ public interface AppointmentJpaRepository extends JpaRepository<Appointment, UUI
             LEFT JOIN FETCH a.client
             LEFT JOIN FETCH a.professional
             LEFT JOIN FETCH a.professional.user
-            LEFT JOIN FETCH a.service
+            LEFT JOIN FETCH a.serviceOffering
             WHERE a.id = :id
             """)
     Optional<Appointment> findByIdWithDetails(@Param("id") UUID id);
