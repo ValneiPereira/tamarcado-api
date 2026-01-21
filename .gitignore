@@ -35,3 +35,6 @@ Thumbs.db
 # Environment
 .env
 .env.local
+
+# Task documentation (opcional - descomente se não quiser versionar)
+# docs/TASKS/
