@@ -1,6 +1,7 @@
 package com.tamarcado.shared.mapper;
 
 import com.tamarcado.domain.model.appointment.Appointment;
+import com.tamarcado.shared.dto.response.AppointmentProfessionalResponse;
 import com.tamarcado.shared.dto.response.AppointmentResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -19,4 +20,13 @@ public interface AppointmentMapper {
     AppointmentResponse toResponse(Appointment appointment);
 
     List<AppointmentResponse> toResponseList(List<Appointment> appointments);
+
+    @Mapping(target = "clientId", source = "client.id")
+    @Mapping(target = "clientName", source = "client.name")
+    @Mapping(target = "clientPhone", source = "client.phone")
+    @Mapping(target = "distance", ignore = true)
+    @Mapping(target = "service", source = "serviceOffering")
+    AppointmentProfessionalResponse toProfessionalResponse(Appointment appointment);
+
+    List<AppointmentProfessionalResponse> toProfessionalResponseList(List<Appointment> appointments);
 }
