@@ -7,8 +7,8 @@ import org.mapstruct.Mapping;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", uses = {UserDtoMapper.class})
-public interface ReviewDtoMapper {
+@Mapper(componentModel = "spring", uses = {UserMapper.class})
+public interface ReviewMapper {
 
     @Mapping(target = "clientId", source = "appointment.client.id")
     @Mapping(target = "clientName", source = "appointment.client.name")

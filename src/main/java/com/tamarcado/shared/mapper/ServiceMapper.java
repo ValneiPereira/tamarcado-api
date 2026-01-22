@@ -7,7 +7,7 @@ import org.mapstruct.Mapper;
 import java.util.List;
 
 @Mapper(componentModel = "spring")
-public interface ServiceDtoMapper {
+public interface ServiceMapper {
 
     ServiceResponse toResponse(ServiceOffering serviceOffering);
 

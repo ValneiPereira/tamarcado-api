@@ -12,16 +12,15 @@ import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.infrastructure.security.SecurityUtils;
 import com.tamarcado.shared.dto.request.CreateServiceRequest;
 import com.tamarcado.shared.dto.request.UpdateServiceRequest;
-import com.tamarcado.shared.dto.response.AddressResponse;
 import com.tamarcado.shared.dto.response.ProfessionalDetailResponse;
 import com.tamarcado.shared.dto.response.ReviewResponse;
 import com.tamarcado.shared.dto.response.ServiceResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
-import com.tamarcado.shared.mapper.AddressDtoMapper;
-import com.tamarcado.shared.mapper.ProfessionalDtoMapper;
-import com.tamarcado.shared.mapper.ReviewDtoMapper;
-import com.tamarcado.shared.mapper.ServiceDtoMapper;
+import com.tamarcado.shared.mapper.AddressMapper;
+import com.tamarcado.shared.mapper.ProfessionalMapper;
+import com.tamarcado.shared.mapper.ReviewMapper;
+import com.tamarcado.shared.mapper.ServiceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -32,7 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -45,10 +43,10 @@ public class ProfessionalService {
     private final AppointmentRepositoryPort appointmentRepository;
     private final SearchService searchService;
     private final UserRepositoryPort userRepository;
-    private final ProfessionalDtoMapper professionalDtoMapper;
-    private final ServiceDtoMapper serviceDtoMapper;
-    private final ReviewDtoMapper reviewDtoMapper;
-    private final AddressDtoMapper addressDtoMapper;
+    private final ProfessionalMapper professionalDtoMapper;
+    private final ServiceMapper serviceDtoMapper;
+    private final ReviewMapper reviewDtoMapper;
+    private final AddressMapper addressDtoMapper;
 
     /**
      * Busca detalhes completos de um profissional por ID
@@ -62,7 +60,7 @@ public class ProfessionalService {
         Professional professional = professionalRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
 
-        if (!professional.getActive() || professional.getUser() == null 
+        if (!professional.getActive() || professional.getUser() == null
                 || !professional.getUser().getActive()) {
             throw new ResourceNotFoundException("Profissional não encontrado ou inativo");
         }
@@ -92,7 +90,7 @@ public class ProfessionalService {
 
         // Construir resposta usando mapper base e adicionar campos extras
         ProfessionalDetailResponse response = professionalDtoMapper.toDetailResponseBase(professional);
-        
+
         // Criar nova instância com todos os campos (MapStruct não suporta múltiplos parâmetros facilmente)
         return new ProfessionalDetailResponse(
                 response.id(),
@@ -117,7 +115,7 @@ public class ProfessionalService {
     @Transactional(readOnly = true)
     public List<ServiceResponse> getMyServices() {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -191,12 +189,12 @@ public class ProfessionalService {
         }
 
         // Verificar agendamentos específicos deste serviço que estão ativos
-        List<com.tamarcado.domain.model.appointment.Appointment> appointments = 
+        List<com.tamarcado.domain.model.appointment.Appointment> appointments =
                 appointmentRepository.findByProfessionalId(professional.getId());
-        
+
         boolean hasActiveAppointments = appointments.stream()
                 .anyMatch(apt -> apt.getServiceOffering().getId().equals(serviceId)
-                        && (apt.getStatus() == AppointmentStatus.PENDING 
+                        && (apt.getStatus() == AppointmentStatus.PENDING
                             || apt.getStatus() == AppointmentStatus.ACCEPTED));
 
         if (hasActiveAppointments) {
@@ -208,7 +206,7 @@ public class ProfessionalService {
         // Soft delete - desativar serviço
         serviceOffering.setActive(false);
         serviceOfferingRepository.save(serviceOffering);
-        
+
         log.info("Serviço {} desativado pelo profissional {}", serviceId, professional.getId());
     }
 
@@ -217,7 +215,7 @@ public class ProfessionalService {
      */
     private Professional getCurrentProfessional() {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
