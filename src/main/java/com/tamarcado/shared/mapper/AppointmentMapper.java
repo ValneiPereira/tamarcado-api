@@ -1,6 +1,10 @@
 package com.tamarcado.shared.mapper;
 
 import com.tamarcado.domain.model.appointment.Appointment;
+import com.tamarcado.domain.model.service.ServiceOffering;
+import com.tamarcado.domain.model.user.Professional;
+import com.tamarcado.domain.model.user.User;
+import com.tamarcado.shared.dto.request.CreateAppointmentRequest;
 import com.tamarcado.shared.dto.response.AppointmentProfessionalResponse;
 import com.tamarcado.shared.dto.response.AppointmentResponse;
 import org.mapstruct.Mapper;
@@ -29,4 +33,16 @@ public interface AppointmentMapper {
     AppointmentProfessionalResponse toProfessionalResponse(Appointment appointment);
 
     List<AppointmentProfessionalResponse> toProfessionalResponseList(List<Appointment> appointments);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "client", source = "client")
+    @Mapping(target = "professional", source = "professional")
+    @Mapping(target = "serviceOffering", source = "service")
+    @Mapping(target = "date", source = "request.date")
+    @Mapping(target = "time", source = "request.time")
+    @Mapping(target = "notes", source = "request.notes")
+    @Mapping(target = "status", constant = "PENDING")
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Appointment toEntity(CreateAppointmentRequest request, User client, Professional professional, ServiceOffering service);
 }

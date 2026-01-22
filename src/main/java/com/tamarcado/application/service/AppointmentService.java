@@ -97,16 +97,7 @@ public class AppointmentService {
             throw new BusinessException("Data não pode ser passada");
         }
 
-        // Criar agendamento
-        Appointment appointment = Appointment.builder()
-                .client(client)
-                .professional(professional)
-                .serviceOffering(service)
-                .date(request.date())
-                .time(request.time())
-                .notes(request.notes())
-                .status(AppointmentStatus.PENDING)
-                .build();
+        Appointment appointment = appointmentDtoMapper.toEntity(request, client, professional, service);
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
         log.info("Agendamento {} criado com sucesso para cliente {} e profissional {}",
