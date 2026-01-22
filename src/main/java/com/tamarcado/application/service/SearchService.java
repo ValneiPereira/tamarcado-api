@@ -9,7 +9,7 @@ import com.tamarcado.domain.model.user.Address;
 import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.shared.dto.response.ProfessionalSearchResponse;
 import com.tamarcado.shared.dto.response.ServiceSearchResponse;
-import com.tamarcado.shared.mapper.ProfessionalDtoMapper;
+import com.tamarcado.shared.mapper.ProfessionalMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -30,7 +30,7 @@ public class SearchService {
 
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
     private final ProfessionalRepositoryPort professionalRepository;
-    private final ProfessionalDtoMapper professionalDtoMapper;
+    private final ProfessionalMapper professionalDtoMapper;
 
     /**
      * Busca serviços agrupados por nome, categoria e tipo
@@ -50,8 +50,8 @@ public class SearchService {
         Map<String, ServiceGroupInfo> serviceGroups = new LinkedHashMap<>();
 
         for (ServiceOffering service : services) {
-            String key = buildServiceKey(service.getName(), 
-                    service.getProfessional().getCategory(), 
+            String key = buildServiceKey(service.getName(),
+                    service.getProfessional().getCategory(),
                     service.getProfessional().getServiceType());
 
             serviceGroups.compute(key, (k, existing) -> {
@@ -59,7 +59,7 @@ public class SearchService {
                     // Primeira ocorrência deste serviço
                     Set<UUID> professionals = new HashSet<>();
                     professionals.add(service.getProfessional().getId());
-                    
+
                     return new ServiceGroupInfo(
                             service.getName(),
                             service.getProfessional().getCategory(),
@@ -73,7 +73,7 @@ public class SearchService {
                     BigDecimal minPrice = existing.minPrice.min(service.getPrice());
                     BigDecimal maxPrice = existing.maxPrice.max(service.getPrice());
                     existing.professionals.add(service.getProfessional().getId());
-                    
+
                     return new ServiceGroupInfo(
                             existing.serviceName,
                             existing.category,
@@ -119,7 +119,7 @@ public class SearchService {
             String sortBy,
             Pageable pageable
     ) {
-        log.debug("Buscando profissionais - ServiceId: {}, Category: {}, ServiceType: {}, Lat: {}, Lng: {}", 
+        log.debug("Buscando profissionais - ServiceId: {}, Category: {}, ServiceType: {}, Lat: {}, Lng: {}",
                 serviceId, category, serviceType, latitude, longitude);
 
         List<Professional> professionals;
@@ -157,7 +157,7 @@ public class SearchService {
         List<ProfessionalSearchResponse> responses = professionals.stream()
                 .map(professional -> {
                     Double distance = null;
-                    if (latitude != null && longitude != null && professional.getUser() != null 
+                    if (latitude != null && longitude != null && professional.getUser() != null
                             && professional.getUser().getAddress() != null) {
                         Address address = professional.getUser().getAddress();
                         if (address.getLatitude() != null && address.getLongitude() != null) {
@@ -165,7 +165,7 @@ public class SearchService {
                                     latitude, longitude,
                                     address.getLatitude(), address.getLongitude()
                             );
-                            
+
                             // Filtrar por distância máxima se especificada
                             if (maxDistanceKm != null && distance > maxDistanceKm) {
                                 return null;
@@ -192,7 +192,7 @@ public class SearchService {
 
         // Ordenar
         if ("distance".equalsIgnoreCase(sortBy) && latitude != null && longitude != null) {
-            responses.sort(Comparator.comparing(ProfessionalSearchResponse::distanceKm, 
+            responses.sort(Comparator.comparing(ProfessionalSearchResponse::distanceKm,
                     Comparator.nullsLast(Comparator.naturalOrder())));
         } else if ("rating".equalsIgnoreCase(sortBy)) {
             responses.sort(Comparator.comparing(ProfessionalSearchResponse::averageRating,
@@ -202,8 +202,8 @@ public class SearchService {
         // Paginação manual
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), responses.size());
-        List<ProfessionalSearchResponse> pagedResults = start < responses.size() 
-                ? responses.subList(start, end) 
+        List<ProfessionalSearchResponse> pagedResults = start < responses.size()
+                ? responses.subList(start, end)
                 : Collections.emptyList();
 
         return new PageImpl<>(pagedResults, pageable, responses.size());

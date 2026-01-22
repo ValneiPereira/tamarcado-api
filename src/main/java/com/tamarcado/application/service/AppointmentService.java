@@ -238,14 +238,14 @@ public class AppointmentService {
         return appointments.stream()
                 .map(appointment -> {
                     AppointmentProfessionalResponse response = appointmentDtoMapper.toProfessionalResponse(appointment);
-                    
+
                     // Calcular distância se coordenadas disponíveis
                     Double distance = null;
                     if (professional.getUser() != null && professional.getUser().getAddress() != null
                             && appointment.getClient() != null && appointment.getClient().getAddress() != null) {
                         Address professionalAddress = professional.getUser().getAddress();
                         Address clientAddress = appointment.getClient().getAddress();
-                        
+
                         if (professionalAddress.getLatitude() != null && professionalAddress.getLongitude() != null
                                 && clientAddress.getLatitude() != null && clientAddress.getLongitude() != null) {
                             distance = searchService.calculateDistance(
@@ -254,7 +254,7 @@ public class AppointmentService {
                             );
                         }
                     }
-                    
+
                     return new AppointmentProfessionalResponse(
                             response.id(),
                             response.clientId(),
