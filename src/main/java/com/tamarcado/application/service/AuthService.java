@@ -18,7 +18,7 @@ import com.tamarcado.shared.dto.response.UserResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
 import com.tamarcado.shared.mapper.AddressRequestMapper;
-import com.tamarcado.shared.mapper.UserDtoMapper;
+import com.tamarcado.shared.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,7 +31,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -44,7 +43,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final UserDtoMapper userDtoMapper;
+    private final UserMapper userDtoMapper;
     private final AddressRequestMapper addressRequestMapper;
 
     @Transactional

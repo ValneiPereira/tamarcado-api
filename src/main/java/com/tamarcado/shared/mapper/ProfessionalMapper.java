@@ -6,8 +6,8 @@ import com.tamarcado.shared.dto.response.ProfessionalSearchResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {UserDtoMapper.class, AddressDtoMapper.class, ServiceDtoMapper.class, ReviewDtoMapper.class})
-public interface ProfessionalDtoMapper {
+@Mapper(componentModel = "spring", uses = {UserMapper.class, AddressMapper.class, ServiceMapper.class, ReviewMapper.class})
+public interface ProfessionalMapper {
 
     @Mapping(target = "name", source = "user.name")
     @Mapping(target = "email", source = "user.email")

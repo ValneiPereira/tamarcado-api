@@ -9,7 +9,7 @@ import com.tamarcado.shared.dto.request.UpdateUserRequest;
 import com.tamarcado.shared.dto.response.UserResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
-import com.tamarcado.shared.mapper.UserDtoMapper;
+import com.tamarcado.shared.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,7 +25,7 @@ public class UserService {
 
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserDtoMapper userDtoMapper;
+    private final UserMapper userDtoMapper;
 
     /**
      * Obtém o perfil do usuário autenticado
@@ -33,7 +33,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser() {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -50,7 +50,7 @@ public class UserService {
     @Transactional
     public UserResponse updateCurrentUser(UpdateUserRequest request) {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -82,7 +82,7 @@ public class UserService {
     @Transactional
     public void changePassword(ChangePasswordRequest request) {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -108,7 +108,7 @@ public class UserService {
         // Atualizar senha
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
-        
+
         log.info("Senha do usuário {} alterada com sucesso", user.getId());
     }
 
@@ -118,7 +118,7 @@ public class UserService {
     @Transactional
     public void deleteCurrentUser() {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -129,7 +129,7 @@ public class UserService {
         // Soft delete - desativar conta
         user.setActive(false);
         userRepository.save(user);
-        
+
         log.info("Conta do usuário {} desativada", user.getId());
     }
 
@@ -138,7 +138,7 @@ public class UserService {
      */
     public void validateUserAccess(UUID userId) {
         String email = SecurityUtils.getCurrentUsername();
-        
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }

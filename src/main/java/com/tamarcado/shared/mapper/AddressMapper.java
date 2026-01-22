@@ -5,7 +5,7 @@ import com.tamarcado.shared.dto.response.AddressResponse;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
-public interface AddressDtoMapper {
+public interface AddressMapper {
 
     AddressResponse toResponse(Address address);
 }
