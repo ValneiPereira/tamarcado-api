@@ -16,9 +16,9 @@
 - [x] **TASK-BE-012**: Implementar Gerenciamento de Agendamentos - Profissional ✅
 - [x] **TASK-BE-013**: Implementar Sistema de Notificações ✅
 - [x] **TASK-BE-014**: Implementar Sistema de Avaliações ✅
-- [ ] **TASK-BE-015**: Implementar Dashboard - Profissional
-- [ ] **TASK-BE-016**: Implementar Dashboard - Cliente
-- [ ] **TASK-BE-017**: Testes de Integração
+- [x] **TASK-BE-015**: Implementar Dashboard - Profissional ✅
+- [x] **TASK-BE-016**: Implementar Dashboard - Cliente ✅
+- [x] **TASK-BE-017**: Testes de Integração ✅
 - [ ] **TASK-BE-018**: Performance e Otimizações
 - [ ] **TASK-BE-019**: Documentação e Deploy
 
@@ -433,6 +433,165 @@
 
 ---
 
+## 📝 SPRINT 5 - NOTIFICAÇÕES E AVALIAÇÕES
+
+### ✅ TASK-BE-013: Implementar Sistema de Notificações
+**Status:** ✅ Concluído  
+**Branch:** `task/be-013-notifications`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 3 dias  
+
+**Checklist:**
+- [x] Criar entidades Notification e DeviceToken
+- [x] Criar NotificationController com endpoints:
+  - [x] `POST /notifications/register-device` - Registrar token de dispositivo
+  - [x] `GET /notifications` - Listar notificações do usuário
+  - [x] `PUT /notifications/{id}/read` - Marcar notificação como lida
+  - [x] `DELETE /notifications/device/{deviceToken}` - Remover token de dispositivo
+- [x] Implementar NotificationService
+- [x] Integrar notificações no AppointmentService (criar, aceitar, rejeitar, completar)
+- [x] Criar NotificationMapper usando MapStruct
+- [x] Criar migration V6 para tabelas de notificações
+
+**Arquivos criados:**
+- Entidades: `Notification.java`, `DeviceToken.java`
+- Controller: `NotificationController.java`
+- Service: `NotificationService.java`
+- Mapper: `NotificationMapper.java`
+- Migration: `V6__create_notifications_and_device_tokens_tables.sql`
+
+**Refatorações:**
+- ✅ Extraído métodos auxiliares em AppointmentService para reduzir duplicação
+- ✅ Uso de MapStruct para criação de entidades Notification
+
+---
+
+### ✅ TASK-BE-014: Implementar Sistema de Avaliações
+**Status:** ✅ Concluído  
+**Branch:** `task/be-014-reviews`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 2 dias  
+
+**Checklist:**
+- [x] Criar ReviewController com endpoints:
+  - [x] `POST /reviews` - Criar avaliação
+  - [x] `GET /reviews/professionals/{professionalId}` - Listar avaliações públicas (paginado)
+  - [x] `GET /reviews/client/me` - Listar avaliações do cliente autenticado
+- [x] Implementar ReviewService com validações:
+  - [x] Apenas agendamentos COMPLETED podem ser avaliados
+  - [x] Cliente só pode avaliar seus próprios agendamentos
+  - [x] Apenas uma avaliação por agendamento
+- [x] Adicionar métodos no ReviewRepository para contar e calcular média
+- [x] Criar ReviewMapper usando MapStruct
+- [x] Configurar endpoint público para avaliações de profissionais
+
+**Arquivos criados:**
+- Controller: `ReviewController.java`
+- Service: `ReviewService.java`
+- DTOs: `CreateReviewRequest.java`, `ReviewListResponse.java`, `PaginationResponse.java`
+- Mapper: `ReviewMapper.java` (atualizado com toEntity)
+
+**Funcionalidades:**
+- ✅ Paginação de avaliações
+- ✅ Cálculo de média de avaliações
+- ✅ Validações de segurança e regras de negócio
+- ✅ Endpoint público para avaliações de profissionais
+
+---
+
+## 📝 SPRINT 6 - DASHBOARDS E TESTES
+
+### ✅ TASK-BE-015: Implementar Dashboard - Profissional
+**Status:** ✅ Concluído  
+**Branch:** `task/be-015-016-dashboards`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 2 dias  
+
+**Checklist:**
+- [x] Criar DashboardController com endpoint `GET /dashboard/professional/stats`
+- [x] Implementar DashboardService.getProfessionalDashboard():
+  - [x] Agendamentos de hoje
+  - [x] Agendamentos pendentes
+  - [x] Média de avaliações
+  - [x] Total de avaliações
+  - [x] Receita mensal
+  - [x] Agendamentos completados no mês
+- [x] Criar DTO (ProfessionalDashboardResponse)
+- [x] Adicionar queries no AppointmentRepository para filtros por data e status
+- [x] Configurar cache Redis para dashboard
+
+**Arquivos criados:**
+- Controller: `DashboardController.java`
+- Service: `DashboardService.java`
+- DTO: `ProfessionalDashboardResponse.java`
+- Queries adicionadas em `AppointmentJpaRepository.java`
+
+**Configurações:**
+- ✅ Cache `professionalDashboard` configurado no `CacheConfig.java` (TTL: 5 minutos)
+
+---
+
+### ✅ TASK-BE-016: Implementar Dashboard - Cliente
+**Status:** ✅ Concluído  
+**Branch:** `task/be-015-016-dashboards`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 1 dia  
+
+**Checklist:**
+- [x] Adicionar endpoint `GET /dashboard/client/stats` no DashboardController
+- [x] Implementar DashboardService.getClientDashboard():
+  - [x] Próximos agendamentos
+  - [x] Agendamentos completados
+  - [x] Categoria favorita (placeholder - null por enquanto)
+- [x] Criar DTO (ClientDashboardResponse)
+- [x] Configurar cache Redis para dashboard
+
+**Arquivos criados:**
+- DTO: `ClientDashboardResponse.java`
+- Métodos adicionados em `DashboardService.java` e `DashboardController.java`
+
+**Configurações:**
+- ✅ Cache `clientDashboard` configurado no `CacheConfig.java` (TTL: 5 minutos)
+
+**Observações:**
+- ⚠️ `favoriteCategory` retorna `null` pois `ServiceOffering` não possui campo de categoria direto
+
+---
+
+### ✅ TASK-BE-017: Testes de Integração
+**Status:** ✅ Concluído  
+**Branch:** `task/be-017-integration-tests`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 3 dias  
+
+**Checklist:**
+- [x] Configurar Testcontainers no pom.xml (já estava configurado)
+- [x] Criar AbstractIntegrationTest com PostgreSQL container
+- [x] Criar application-test.yml para configuração de testes
+- [x] Criar TestUtils para utilitários de teste
+- [x] Criar testes de integração para controllers:
+  - [x] AuthControllerIntegrationTest
+  - [x] AppointmentControllerIntegrationTest
+- [x] Criar testes de integração para repositories:
+  - [x] ReviewRepositoryIntegrationTest
+- [x] Criar testes de integração para services:
+  - [x] DashboardServiceIntegrationTest
+
+**Arquivos criados:**
+- Classe base: `AbstractIntegrationTest.java`
+- Utilitários: `TestUtils.java`
+- Configuração: `application-test.yml`
+- Testes: `AuthControllerIntegrationTest.java`, `AppointmentControllerIntegrationTest.java`, `ReviewRepositoryIntegrationTest.java`, `DashboardServiceIntegrationTest.java`
+
+**Funcionalidades:**
+- ✅ Testcontainers configurado com PostgreSQL 16
+- ✅ Testes end-to-end para fluxos principais
+- ✅ Testes de repositórios com queries customizadas
+- ✅ Testes de serviços com lógica de negócio
+- ✅ MockMvc configurado para testes de controllers
+
+---
+
 ## 🔄 Legenda de Status
 
 - ✅ **Concluído**: Task finalizada e testada
@@ -453,12 +612,12 @@
 
 ---
 
-**Última atualização:** 2026-01-22
+**Última atualização:** 2026-01-23
 
 ---
 
 ## 📊 Resumo de Progresso
 
-**Tasks Concluídas:** 14/19 (73.7%)  
-**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅ | Sprint 4 (Agendamentos) ✅ | Sprint 5 (Notificações e Avaliações) ✅  
-**Próxima Task:** TASK-BE-015 - Implementar Dashboard - Profissional
+**Tasks Concluídas:** 17/19 (89.5%)  
+**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅ | Sprint 4 (Agendamentos) ✅ | Sprint 5 (Notificações e Avaliações) ✅ | Sprint 6 (Dashboards e Testes) ✅  
+**Próxima Task:** TASK-BE-018 - Performance e Otimizações
