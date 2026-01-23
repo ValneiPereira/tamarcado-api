@@ -14,8 +14,8 @@
 - [x] **TASK-BE-010**: Implementar ProfessionalController ✅
 - [x] **TASK-BE-011**: Implementar AppointmentController - Cliente ✅
 - [x] **TASK-BE-012**: Implementar Gerenciamento de Agendamentos - Profissional ✅
-- [ ] **TASK-BE-013**: Implementar Sistema de Notificações
-- [ ] **TASK-BE-014**: Implementar Sistema de Avaliações
+- [x] **TASK-BE-013**: Implementar Sistema de Notificações ✅
+- [x] **TASK-BE-014**: Implementar Sistema de Avaliações ✅
 - [ ] **TASK-BE-015**: Implementar Dashboard - Profissional
 - [ ] **TASK-BE-016**: Implementar Dashboard - Cliente
 - [ ] **TASK-BE-017**: Testes de Integração
@@ -453,12 +453,12 @@
 
 ---
 
-**Última atualização:** 2026-01-21
+**Última atualização:** 2026-01-22
 
 ---
 
 ## 📊 Resumo de Progresso
 
-**Tasks Concluídas:** 12/19 (63.2%)  
-**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅ | Sprint 4 (Agendamentos) ✅  
-**Próxima Task:** TASK-BE-013 - Implementar Sistema de Notificações
+**Tasks Concluídas:** 14/19 (73.7%)  
+**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅ | Sprint 4 (Agendamentos) ✅ | Sprint 5 (Notificações e Avaliações) ✅  
+**Próxima Task:** TASK-BE-015 - Implementar Dashboard - Profissional

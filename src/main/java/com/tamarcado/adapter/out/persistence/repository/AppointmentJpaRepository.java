@@ -43,4 +43,20 @@ public interface AppointmentJpaRepository extends JpaRepository<Appointment, UUI
 
     @Query("SELECT COUNT(a) FROM Appointment a WHERE a.professional.id = :professionalId AND a.status = :status")
     long countByProfessionalIdAndStatus(@Param("professionalId") UUID professionalId, @Param("status") AppointmentStatus status);
+
+    @Query("""
+            SELECT a FROM Appointment a
+            LEFT JOIN FETCH a.serviceOffering
+            WHERE a.professional.id = :professionalId
+            AND a.date BETWEEN :startDate AND :endDate
+            AND a.status = :status
+            """)
+    List<Appointment> findByProfessionalIdAndDateRangeAndStatus(
+            @Param("professionalId") UUID professionalId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("status") AppointmentStatus status
+    );
+
+    List<Appointment> findByClientIdAndStatusIn(UUID clientId, List<AppointmentStatus> statuses);
 }
