@@ -32,4 +32,9 @@ public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
     List<Review> findByProfessionalIdOrderByCreatedAtDesc(@Param("professionalId") UUID professionalId);
 
     boolean existsByAppointmentId(UUID appointmentId);
+
+    long countByProfessionalId(UUID professionalId);
+
+    @Query("SELECT AVG(r.rating) FROM Review r WHERE r.professional.id = :professionalId")
+    Double calculateAverageRatingByProfessionalId(@Param("professionalId") UUID professionalId);
 }
