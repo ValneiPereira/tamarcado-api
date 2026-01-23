@@ -33,4 +33,13 @@ public interface AppointmentRepositoryPort {
     );
 
     long countByProfessionalIdAndStatus(UUID professionalId, AppointmentStatus status);
+
+    List<Appointment> findByProfessionalIdAndDateRangeAndStatus(
+            UUID professionalId,
+            LocalDate startDate,
+            LocalDate endDate,
+            AppointmentStatus status
+    );
+
+    List<Appointment> findByClientIdAndStatusIn(UUID clientId, List<AppointmentStatus> statuses);
 }

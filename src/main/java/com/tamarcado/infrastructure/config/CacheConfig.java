@@ -41,6 +41,12 @@ public class CacheConfig {
         
         // Cache de detalhes do profissional (30 minutos)
         cacheConfigurations.put("professionalDetail", defaultConfig.entryTtl(Duration.ofMinutes(30)));
+        
+        // Cache de dashboard do profissional (5 minutos)
+        cacheConfigurations.put("professionalDashboard", defaultConfig.entryTtl(Duration.ofMinutes(5)));
+        
+        // Cache de dashboard do cliente (5 minutos)
+        cacheConfigurations.put("clientDashboard", defaultConfig.entryTtl(Duration.ofMinutes(5)));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultConfig)
