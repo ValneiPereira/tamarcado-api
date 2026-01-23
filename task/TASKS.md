@@ -12,8 +12,8 @@
 - [x] **TASK-BE-008**: Implementar Busca de Serviços ✅
 - [x] **TASK-BE-009**: Implementar Busca de Profissionais ✅
 - [x] **TASK-BE-010**: Implementar ProfessionalController ✅
-- [ ] **TASK-BE-011**: Implementar AppointmentController - Cliente
-- [ ] **TASK-BE-012**: Implementar Gerenciamento de Agendamentos - Profissional
+- [x] **TASK-BE-011**: Implementar AppointmentController - Cliente ✅
+- [x] **TASK-BE-012**: Implementar Gerenciamento de Agendamentos - Profissional ✅
 - [ ] **TASK-BE-013**: Implementar Sistema de Notificações
 - [ ] **TASK-BE-014**: Implementar Sistema de Avaliações
 - [ ] **TASK-BE-015**: Implementar Dashboard - Profissional
@@ -354,6 +354,85 @@
 
 ---
 
+## 📝 SPRINT 4 - AGENDAMENTOS
+
+### ✅ TASK-BE-011: Implementar AppointmentController - Cliente
+**Status:** ✅ Concluído  
+**Branch:** `task/be-011-appointment-controller-cliente`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 3 dias  
+
+**Checklist:**
+- [x] Criar AppointmentController com endpoints:
+  - [x] `POST /appointments` - Criar agendamento
+  - [x] `GET /appointments/client` - Listar agendamentos do cliente (com filtro de status)
+  - [x] `GET /appointments/{id}` - Buscar agendamento por ID
+  - [x] `DELETE /appointments/{id}` - Cancelar agendamento (apenas se PENDING)
+- [x] Implementar AppointmentService:
+  - [x] createAppointment - cria novo agendamento com validações
+  - [x] getAppointmentsByClient - lista agendamentos com filtro de status
+  - [x] getAppointmentById - busca agendamento específico
+  - [x] cancelAppointment - cancela agendamento (apenas se PENDING)
+- [x] Criar DTOs (CreateAppointmentRequest, AppointmentResponse)
+- [x] Criar AppointmentMapper usando MapStruct
+- [x] Implementar validações de segurança e regras de negócio:
+  - [x] Data não pode ser passada
+  - [x] Profissional e serviço devem existir e estar ativos
+  - [x] Serviço deve pertencer ao profissional
+  - [x] Cliente só pode acessar seus próprios agendamentos
+  - [x] Cancelamento só permitido se status for PENDING
+
+**Arquivos criados:**
+- `AppointmentController.java` - Endpoints REST para agendamentos
+- `AppointmentService.java` - Lógica de negócio para agendamentos
+- DTOs: `CreateAppointmentRequest.java`, `AppointmentResponse.java`
+- Mapper: `AppointmentMapper.java`
+
+**Melhorias implementadas:**
+- ✅ Uso de MapStruct para conversões (AppointmentMapper)
+- ✅ Mapper para criação de entidade (toEntity) usando request + entidades
+- ✅ Validações completas de segurança e regras de negócio
+- ✅ Adicionado lombok-mapstruct-binding no pom.xml para compatibilidade Lombok + MapStruct
+
+---
+
+### ✅ TASK-BE-012: Implementar Gerenciamento de Agendamentos - Profissional
+**Status:** ✅ Concluído  
+**Branch:** `task/be-012-appointment-professional`  
+**Responsável:** Backend Dev 1  
+**Estimativa:** 2 dias  
+
+**Checklist:**
+- [x] Adicionar endpoints no AppointmentController:
+  - [x] `GET /appointments/professional` - Listar agendamentos do profissional (com filtro de status)
+  - [x] `PUT /appointments/{id}/accept` - Aceitar agendamento (PENDING → ACCEPTED)
+  - [x] `PUT /appointments/{id}/reject` - Rejeitar agendamento (PENDING → REJECTED)
+  - [x] `PUT /appointments/{id}/complete` - Completar agendamento (ACCEPTED → COMPLETED)
+- [x] Implementar AppointmentService com métodos para profissional:
+  - [x] getAppointmentsByProfessional - lista agendamentos com cálculo de distância
+  - [x] acceptAppointment - aceita agendamento (apenas se PENDING)
+  - [x] rejectAppointment - rejeita agendamento (apenas se PENDING)
+  - [x] completeAppointment - completa agendamento (apenas se ACCEPTED)
+- [x] Criar DTO (AppointmentProfessionalResponse com campo distance)
+- [x] Adicionar métodos no AppointmentMapper para conversão profissional
+- [x] Implementar validações de segurança:
+  - [x] Profissional só gerencia seus próprios agendamentos
+  - [x] Validação de transições de status
+- [x] Calcular distância até cliente usando fórmula de Haversine
+
+**Arquivos criados:**
+- DTO: `AppointmentProfessionalResponse.java`
+- Métodos adicionados em `AppointmentService.java` e `AppointmentController.java`
+- Métodos adicionados em `AppointmentMapper.java`
+
+**Funcionalidades:**
+- ✅ Listagem de agendamentos do profissional com filtro opcional de status
+- ✅ Cálculo de distância até o cliente (usando fórmula de Haversine do SearchService)
+- ✅ Transições de status validadas (accept, reject, complete)
+- ✅ Validações de segurança para garantir que profissional só gerencia seus agendamentos
+
+---
+
 ## 🔄 Legenda de Status
 
 - ✅ **Concluído**: Task finalizada e testada
@@ -380,6 +459,6 @@
 
 ## 📊 Resumo de Progresso
 
-**Tasks Concluídas:** 10/19 (52.6%)  
-**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅  
-**Próxima Task:** TASK-BE-011 - Implementar AppointmentController - Cliente
+**Tasks Concluídas:** 12/19 (63.2%)  
+**Sprints Completas:** Sprint 1 ✅ | Sprint 2 ✅ | Sprint 3 (Mapper) ✅ | Sprint 4 (Agendamentos) ✅  
+**Próxima Task:** TASK-BE-013 - Implementar Sistema de Notificações
