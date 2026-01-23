@@ -47,4 +47,14 @@ public class ReviewRepositoryAdapter implements ReviewRepositoryPort {
     public boolean existsByAppointmentId(UUID appointmentId) {
         return jpaRepository.existsByAppointmentId(appointmentId);
     }
+
+    @Override
+    public long countByProfessionalId(UUID professionalId) {
+        return jpaRepository.countByProfessionalId(professionalId);
+    }
+
+    @Override
+    public Double calculateAverageRatingByProfessionalId(UUID professionalId) {
+        return jpaRepository.calculateAverageRatingByProfessionalId(professionalId);
+    }
 }
