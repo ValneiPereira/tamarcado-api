@@ -15,6 +15,7 @@ import com.tamarcado.infrastructure.security.SecurityUtils;
 import com.tamarcado.shared.dto.request.CreateAppointmentRequest;
 import com.tamarcado.shared.dto.response.AppointmentProfessionalResponse;
 import com.tamarcado.shared.dto.response.AppointmentResponse;
+import com.tamarcado.domain.model.notification.NotificationType;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
 import com.tamarcado.shared.mapper.AppointmentMapper;
@@ -24,7 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -37,8 +41,9 @@ public class AppointmentService {
     private final UserRepositoryPort userRepository;
     private final ProfessionalRepositoryPort professionalRepository;
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
-    private final AppointmentMapper appointmentDtoMapper;
+    private final AppointmentMapper appointmentMapper;
     private final SearchService searchService;
+    private final NotificationService notificationService;
 
     /**
      * Cria um novo agendamento
@@ -97,13 +102,32 @@ public class AppointmentService {
             throw new BusinessException("Data não pode ser passada");
         }
 
-        Appointment appointment = appointmentDtoMapper.toEntity(request, client, professional, service);
+        Appointment appointment = appointmentMapper.toEntity(request, client, professional, service);
 
         Appointment savedAppointment = appointmentRepository.save(appointment);
         log.info("Agendamento {} criado com sucesso para cliente {} e profissional {}",
                 savedAppointment.getId(), client.getId(), professional.getId());
 
-        return appointmentDtoMapper.toResponse(savedAppointment);
+        // Enviar notificação para o profissional
+        try {
+            String dateFormatted = formatDate(savedAppointment.getDate());
+            String timeFormatted = formatTime(savedAppointment.getTime());
+            Map<String, Object> notificationData = createNotificationData(savedAppointment, client.getName());
+
+            notificationService.sendNotification(
+                    professional.getId(),
+                    NotificationType.APPOINTMENT_CREATED,
+                    "Novo Agendamento",
+                    String.format("%s solicitou um agendamento para %s às %s",
+                            client.getName(), dateFormatted, timeFormatted),
+                    notificationData
+            );
+        } catch (Exception e) {
+            log.error("Erro ao enviar notificação de novo agendamento", e);
+            // Não falhar o agendamento se a notificação falhar
+        }
+
+        return appointmentMapper.toResponse(savedAppointment);
     }
 
     /**
@@ -112,6 +136,7 @@ public class AppointmentService {
     @Transactional(readOnly = true)
     public List<AppointmentResponse> getAppointmentsByClient(AppointmentStatus status) {
         String email = SecurityUtils.getCurrentUsername();
+
         if (email == null) {
             throw new BusinessException("Usuário não autenticado");
         }
@@ -131,7 +156,7 @@ public class AppointmentService {
             appointments = appointmentRepository.findByClientId(client.getId());
         }
 
-        return appointmentDtoMapper.toResponseList(appointments);
+        return appointmentMapper.toResponseList(appointments);
     }
 
     /**
@@ -141,23 +166,12 @@ public class AppointmentService {
     public AppointmentResponse getAppointmentById(UUID appointmentId) {
         log.debug("Buscando agendamento: {}", appointmentId);
 
-        Appointment appointment = appointmentRepository.findByIdWithDetails(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+        Appointment appointment = findAppointmentWithDetails(appointmentId);
+        User currentUser = getCurrentAuthenticatedUser();
 
-        // Validar que o usuário autenticado é o cliente do agendamento
-        String email = SecurityUtils.getCurrentUsername();
-        if (email == null) {
-            throw new BusinessException("Usuário não autenticado");
-        }
+        validateClientOwnership(appointment, currentUser, "visualizar");
 
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (!appointment.getClient().getId().equals(currentUser.getId())) {
-            throw new BusinessException("Acesso negado. Você só pode visualizar seus próprios agendamentos.");
-        }
-
-        return appointmentDtoMapper.toResponse(appointment);
+        return appointmentMapper.toResponse(appointment);
     }
 
     /**
@@ -167,21 +181,10 @@ public class AppointmentService {
     public void cancelAppointment(UUID appointmentId) {
         log.debug("Cancelando agendamento: {}", appointmentId);
 
-        Appointment appointment = appointmentRepository.findByIdWithDetails(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+        Appointment appointment = findAppointmentWithDetails(appointmentId);
+        User currentUser = getCurrentAuthenticatedUser();
 
-        // Validar que o usuário autenticado é o cliente do agendamento
-        String email = SecurityUtils.getCurrentUsername();
-        if (email == null) {
-            throw new BusinessException("Usuário não autenticado");
-        }
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (!appointment.getClient().getId().equals(currentUser.getId())) {
-            throw new BusinessException("Acesso negado. Você só pode cancelar seus próprios agendamentos.");
-        }
+        validateClientOwnership(appointment, currentUser, "cancelar");
 
         // Validar que o status permite cancelamento
         if (appointment.getStatus() != AppointmentStatus.PENDING) {
@@ -227,40 +230,11 @@ public class AppointmentService {
 
         // Converter para DTOs e calcular distância
         return appointments.stream()
-                .map(appointment -> {
-                    AppointmentProfessionalResponse response = appointmentDtoMapper.toProfessionalResponse(appointment);
-
-                    // Calcular distância se coordenadas disponíveis
-                    Double distance = null;
-                    if (professional.getUser() != null && professional.getUser().getAddress() != null
-                            && appointment.getClient() != null && appointment.getClient().getAddress() != null) {
-                        Address professionalAddress = professional.getUser().getAddress();
-                        Address clientAddress = appointment.getClient().getAddress();
-
-                        if (professionalAddress.getLatitude() != null && professionalAddress.getLongitude() != null
-                                && clientAddress.getLatitude() != null && clientAddress.getLongitude() != null) {
-                            distance = searchService.calculateDistance(
-                                    professionalAddress.getLatitude(), professionalAddress.getLongitude(),
-                                    clientAddress.getLatitude(), clientAddress.getLongitude()
-                            );
-                        }
-                    }
-
-                    return new AppointmentProfessionalResponse(
-                            response.id(),
-                            response.clientId(),
-                            response.clientName(),
-                            response.clientPhone(),
-                            distance,
-                            response.service(),
-                            response.date(),
-                            response.time(),
-                            response.notes(),
-                            response.status(),
-                            response.createdAt(),
-                            response.updatedAt()
-                    );
-                })
+                .map(appointment -> enrichResponseWithDistance(
+                        appointmentMapper.toProfessionalResponse(appointment),
+                        professional,
+                        appointment
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -271,21 +245,10 @@ public class AppointmentService {
     public void acceptAppointment(UUID appointmentId) {
         log.debug("Aceitando agendamento: {}", appointmentId);
 
-        Appointment appointment = appointmentRepository.findByIdWithDetails(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+        Appointment appointment = findAppointmentWithDetails(appointmentId);
+        User currentUser = getCurrentAuthenticatedUser();
 
-        // Validar que o usuário autenticado é o profissional do agendamento
-        String email = SecurityUtils.getCurrentUsername();
-        if (email == null) {
-            throw new BusinessException("Usuário não autenticado");
-        }
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (!appointment.getProfessional().getId().equals(currentUser.getId())) {
-            throw new BusinessException("Acesso negado. Você só pode gerenciar seus próprios agendamentos.");
-        }
+        validateProfessionalOwnership(appointment, currentUser);
 
         // Validar que o status permite aceitação
         if (appointment.getStatus() != AppointmentStatus.PENDING) {
@@ -298,6 +261,25 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
 
         log.info("Agendamento {} aceito pelo profissional {}", appointmentId, currentUser.getId());
+
+        // Enviar notificação para o cliente
+        try {
+            String dateFormatted = formatDate(appointment.getDate());
+            String timeFormatted = formatTime(appointment.getTime());
+            Map<String, Object> notificationData = createNotificationData(appointment, null);
+
+            notificationService.sendNotification(
+                    appointment.getClient().getId(),
+                    NotificationType.APPOINTMENT_ACCEPTED,
+                    "Agendamento Confirmado!",
+                    String.format("%s aceitou seu agendamento para %s às %s",
+                            appointment.getProfessional().getUser().getName(), dateFormatted, timeFormatted),
+                    notificationData
+            );
+        } catch (Exception e) {
+            log.error("Erro ao enviar notificação de agendamento aceito", e);
+            // Não falhar a operação se a notificação falhar
+        }
     }
 
     /**
@@ -307,21 +289,10 @@ public class AppointmentService {
     public void rejectAppointment(UUID appointmentId) {
         log.debug("Rejeitando agendamento: {}", appointmentId);
 
-        Appointment appointment = appointmentRepository.findByIdWithDetails(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+        Appointment appointment = findAppointmentWithDetails(appointmentId);
+        User currentUser = getCurrentAuthenticatedUser();
 
-        // Validar que o usuário autenticado é o profissional do agendamento
-        String email = SecurityUtils.getCurrentUsername();
-        if (email == null) {
-            throw new BusinessException("Usuário não autenticado");
-        }
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (!appointment.getProfessional().getId().equals(currentUser.getId())) {
-            throw new BusinessException("Acesso negado. Você só pode gerenciar seus próprios agendamentos.");
-        }
+        validateProfessionalOwnership(appointment, currentUser);
 
         // Validar que o status permite rejeição
         if (appointment.getStatus() != AppointmentStatus.PENDING) {
@@ -334,6 +305,25 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
 
         log.info("Agendamento {} rejeitado pelo profissional {}", appointmentId, currentUser.getId());
+
+        // Enviar notificação para o cliente
+        try {
+            String dateFormatted = formatDate(appointment.getDate());
+            String timeFormatted = formatTime(appointment.getTime());
+            Map<String, Object> notificationData = createNotificationData(appointment, null);
+
+            notificationService.sendNotification(
+                    appointment.getClient().getId(),
+                    NotificationType.APPOINTMENT_REJECTED,
+                    "Agendamento Recusado",
+                    String.format("%s recusou seu agendamento para %s às %s",
+                            appointment.getProfessional().getUser().getName(), dateFormatted, timeFormatted),
+                    notificationData
+            );
+        } catch (Exception e) {
+            log.error("Erro ao enviar notificação de agendamento rejeitado", e);
+            // Não falhar a operação se a notificação falhar
+        }
     }
 
     /**
@@ -343,21 +333,10 @@ public class AppointmentService {
     public void completeAppointment(UUID appointmentId) {
         log.debug("Completando agendamento: {}", appointmentId);
 
-        Appointment appointment = appointmentRepository.findByIdWithDetails(appointmentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+        Appointment appointment = findAppointmentWithDetails(appointmentId);
+        User currentUser = getCurrentAuthenticatedUser();
 
-        // Validar que o usuário autenticado é o profissional do agendamento
-        String email = SecurityUtils.getCurrentUsername();
-        if (email == null) {
-            throw new BusinessException("Usuário não autenticado");
-        }
-
-        User currentUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        if (!appointment.getProfessional().getId().equals(currentUser.getId())) {
-            throw new BusinessException("Acesso negado. Você só pode gerenciar seus próprios agendamentos.");
-        }
+        validateProfessionalOwnership(appointment, currentUser);
 
         // Validar que o status permite conclusão
         if (appointment.getStatus() != AppointmentStatus.ACCEPTED) {
@@ -370,5 +349,150 @@ public class AppointmentService {
         appointmentRepository.save(appointment);
 
         log.info("Agendamento {} completado pelo profissional {}", appointmentId, currentUser.getId());
+
+        // Enviar notificação para o cliente
+        try {
+            Map<String, Object> notificationData = createNotificationData(appointment, null);
+
+            notificationService.sendNotification(
+                    appointment.getClient().getId(),
+                    NotificationType.APPOINTMENT_COMPLETED,
+                    "Agendamento Concluído",
+                    String.format("O agendamento com %s foi concluído. Que tal avaliar o serviço?",
+                            appointment.getProfessional().getUser().getName()),
+                    notificationData
+            );
+        } catch (Exception e) {
+            log.error("Erro ao enviar notificação de agendamento completado", e);
+            // Não falhar a operação se a notificação falhar
+        }
+    }
+
+    // ========== Métodos auxiliares privados ==========
+
+    /**
+     * Busca o usuário autenticado atual
+     */
+    private User getCurrentAuthenticatedUser() {
+        String email = SecurityUtils.getCurrentUsername();
+        if (email == null) {
+            throw new BusinessException("Usuário não autenticado");
+        }
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+    }
+
+    /**
+     * Busca um agendamento com todos os detalhes (com relacionamentos carregados)
+     */
+    private Appointment findAppointmentWithDetails(UUID appointmentId) {
+        return appointmentRepository.findByIdWithDetails(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Agendamento não encontrado"));
+    }
+
+    /**
+     * Valida se o usuário autenticado é o cliente do agendamento
+     */
+    private void validateClientOwnership(Appointment appointment, User currentUser, String action) {
+        if (!appointment.getClient().getId().equals(currentUser.getId())) {
+            throw new BusinessException(
+                    String.format("Acesso negado. Você só pode %s seus próprios agendamentos.", action));
+        }
+    }
+
+    /**
+     * Valida se o usuário autenticado é o profissional do agendamento
+     */
+    private void validateProfessionalOwnership(Appointment appointment, User currentUser) {
+        if (!appointment.getProfessional().getId().equals(currentUser.getId())) {
+            throw new BusinessException("Acesso negado. Você só pode gerenciar seus próprios agendamentos.");
+        }
+    }
+
+    /**
+     * Formata a data do agendamento
+     */
+    private String formatDate(LocalDate date) {
+        return date.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+    }
+
+    /**
+     * Formata o horário do agendamento
+     */
+    private String formatTime(java.time.LocalTime time) {
+        return time.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    /**
+     * Cria o Map de dados para notificação
+     * @param appointment Agendamento
+     * @param clientName Nome do cliente (opcional, usado apenas quando notificando profissional)
+     * @return Map com dados da notificação
+     */
+    private Map<String, Object> createNotificationData(Appointment appointment, String clientName) {
+        Map<String, Object> notificationData = new HashMap<>();
+        notificationData.put("appointmentId", appointment.getId().toString());
+
+        if (clientName != null) {
+            // Quando notificando profissional sobre novo agendamento
+            notificationData.put("clientName", clientName);
+        } else {
+            // Quando notificando cliente sobre mudanças no agendamento
+            notificationData.put("professionalName", appointment.getProfessional().getUser().getName());
+        }
+
+        return notificationData;
+    }
+
+    /**
+     * Enriquece o response com a distância calculada entre profissional e cliente
+     */
+    private AppointmentProfessionalResponse enrichResponseWithDistance(
+            AppointmentProfessionalResponse response,
+            Professional professional,
+            Appointment appointment) {
+        Double distance = calculateDistanceToClient(professional, appointment);
+
+        return new AppointmentProfessionalResponse(
+                response.id(),
+                response.clientId(),
+                response.clientName(),
+                response.clientPhone(),
+                distance,
+                response.service(),
+                response.date(),
+                response.time(),
+                response.notes(),
+                response.status(),
+                response.createdAt(),
+                response.updatedAt()
+        );
+    }
+
+    /**
+     * Calcula a distância entre o profissional e o cliente do agendamento
+     * @return Distância em quilômetros ou null se não for possível calcular
+     */
+    private Double calculateDistanceToClient(Professional professional, Appointment appointment) {
+        if (professional.getUser() == null || professional.getUser().getAddress() == null
+                || appointment.getClient() == null || appointment.getClient().getAddress() == null) {
+            return null;
+        }
+
+        Address professionalAddress = professional.getUser().getAddress();
+        Address clientAddress = appointment.getClient().getAddress();
+
+        if (professionalAddress.getLatitude() == null || professionalAddress.getLongitude() == null
+                || clientAddress.getLatitude() == null || clientAddress.getLongitude() == null) {
+            return null;
+        }
+
+        return searchService.calculateDistance(
+                professionalAddress.getLatitude(),
+                professionalAddress.getLongitude(),
+                clientAddress.getLatitude(),
+                clientAddress.getLongitude()
+        );
     }
 }
