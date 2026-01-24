@@ -1,0 +1,10 @@
+{
+  "loginTest": {
+    "email": "login@example.com",
+    "password": "senha123"
+  },
+  "invalid": {
+    "email": "inexistente@example.com",
+    "password": "senha123"
+  }
+}

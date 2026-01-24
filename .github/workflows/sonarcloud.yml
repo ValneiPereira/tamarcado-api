@@ -1,0 +1,42 @@
+# SonarCloud: análise estática + cobertura de testes
+# Ver docs/SONARCLOUD.md para configurar SONAR_TOKEN, SONAR_ORGANIZATION e SONAR_PROJECT_KEY.
+
+name: SonarCloud
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  sonarcloud:
+    name: Build, Test & SonarCloud
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: maven
+
+      - name: Build and run tests
+        run: mvn verify -B -DskipTests=false
+
+      - name: SonarCloud scan
+        if: vars.SONAR_ORGANIZATION != '' && vars.SONAR_PROJECT_KEY != ''
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          echo "SonarCloud org=${{ vars.SONAR_ORGANIZATION }} project=${{ vars.SONAR_PROJECT_KEY }}"
+          mvn org.sonarsource.scanner.maven:sonar-maven-plugin:3.11.0.3922:sonar \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}

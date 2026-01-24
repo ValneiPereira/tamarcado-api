@@ -106,7 +106,6 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         Professional professional = Professional.builder()
-                .id(savedUser.getId())
                 .user(savedUser)
                 .category(request.category())
                 .serviceType(request.serviceType())

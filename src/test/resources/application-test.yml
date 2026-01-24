@@ -1,0 +1,45 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+    baseline-on-migrate: true
+  cache:
+    type: none  # CacheManager de teste usa in-memory (TestCacheConfig)
+
+
+jwt:
+  secret: test-secret-key-for-integration-tests-must-be-at-least-256-bits-long-for-hmac-sha-256-algorithm
+  expiration: 3600000  # 1 hora em milissegundos
+  refresh-expiration: 86400000  # 24 horas em milissegundos
+
+geocoding:
+  api:
+    provider: viacep
+    viacep:
+      base-url: https://viacep.com.br/ws
+    google:
+      base-url: https://maps.googleapis.com/maps/api
+      api-key: ""
+
+logging:
+  level:
+    com.tamarcado: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

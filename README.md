@@ -1,3 +1,6 @@
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ValneiPereira_tamarcado-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ValneiPereira_tamarcado-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+
 # TÁ MARCADO! - API Backend
 
 Backend API desenvolvida com Spring Boot 3.2+ e Java 21 seguindo os princípios de **Clean Architecture** e **Hexagonal Architecture (Ports & Adapters)**.
