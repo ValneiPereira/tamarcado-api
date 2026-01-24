@@ -1,7 +1,7 @@
 # SonarCloud: análise estática + cobertura de testes
 # Ver docs/SONARCLOUD.md para configurar SONAR_TOKEN, SONAR_ORGANIZATION e SONAR_PROJECT_KEY.
 
-name: SonarCloud
+name: tamarcado-api
 
 on:
   push:
@@ -10,8 +10,8 @@ on:
     branches: [main, master, develop]
 
 jobs:
-  sonarcloud:
-    name: Build, Test & SonarCloud
+  tamarcado-api:
+    name: Build, Test & tamarcado-api
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Build and run tests
         run: mvn verify -B -DskipTests=false
 
-      - name: SonarCloud scan
+      - name: tamarcado-api scan
         if: vars.SONAR_ORGANIZATION != '' && vars.SONAR_PROJECT_KEY != ''
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
