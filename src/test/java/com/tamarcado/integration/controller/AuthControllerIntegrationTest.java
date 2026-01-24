@@ -1,132 +1,83 @@
 package com.tamarcado.integration.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tamarcado.AbstractIntegrationTest;
-import com.tamarcado.shared.dto.request.LoginRequest;
-import com.tamarcado.shared.dto.request.RegisterClientRequest;
-import com.tamarcado.shared.dto.request.RegisterProfessionalRequest;
-import com.tamarcado.shared.dto.request.AddressRequest;
+import com.tamarcado.AbstractIntegrationTestWithoutDocker;
+import com.tamarcado.TestDataLoader;
+import io.restassured.http.ContentType;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import java.util.Map;
 
-@Transactional
-class AuthControllerIntegrationTest extends AbstractIntegrationTest {
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+class AuthControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker {
 
     @Test
-    void shouldRegisterClient() throws Exception {
-        RegisterClientRequest request = new RegisterClientRequest(
-                "João Silva",
-                "joao@example.com",
-                "senha123",
-                "11999999999",
-                new AddressRequest(
-                        "01310-100",
-                        "Av. Paulista",
-                        "1000",
-                        null,
-                        "Bela Vista",
-                        "São Paulo",
-                        "SP"
-                )
-        );
+    void shouldRegisterClient() {
+        Map<String, Object> request = TestDataLoader.loadRegisterClientRequest("joaoSilva");
 
-        mockMvc.perform(post("/api/v1/auth/register/client")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.token").exists())
-                .andExpect(jsonPath("$.data.refreshToken").exists())
-                .andExpect(jsonPath("$.data.user.id").exists())
-                .andExpect(jsonPath("$.data.user.email").value("joao@example.com"));
+        given()
+                .contentType(ContentType.JSON)
+                .body(request)
+        .when()
+                .post("/auth/register/client")
+        .then()
+                .statusCode(201)
+                .body("success", equalTo(true))
+                .body("data.accessToken", notNullValue())
+                .body("data.refreshToken", notNullValue())
+                .body("data.user.id", notNullValue())
+                .body("data.user.email", equalTo("joao@example.com"));
     }
 
     @Test
-    void shouldRegisterProfessional() throws Exception {
-        RegisterProfessionalRequest request = new RegisterProfessionalRequest(
-                "Maria Santos",
-                "maria@example.com",
-                "senha123",
-                "11988888888",
-                new AddressRequest(
-                        "01310-100",
-                        "Av. Paulista",
-                        "2000",
-                        null,
-                        "Bela Vista",
-                        "São Paulo",
-                        "SP"
-                ),
-                com.tamarcado.domain.model.service.Category.BELEZA,
-                com.tamarcado.domain.model.service.ServiceType.CABELEIREIRO,
-                java.util.List.of(
-                        new com.tamarcado.shared.dto.request.ServiceRequest("Corte de Cabelo", java.math.BigDecimal.valueOf(50.00))
-                )
-        );
+    void shouldRegisterProfessional() {
+        Map<String, Object> request = TestDataLoader.loadRegisterProfessionalRequest("mariaSantos");
 
-        mockMvc.perform(post("/api/v1/auth/register/professional")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.token").exists())
-                .andExpect(jsonPath("$.data.user.email").value("maria@example.com"));
+        given()
+                .contentType(ContentType.JSON)
+                .body(request)
+        .when()
+                .post("/auth/register/professional")
+        .then()
+                .statusCode(201)
+                .body("success", equalTo(true))
+                .body("data.accessToken", notNullValue())
+                .body("data.user.email", equalTo("maria@example.com"));
     }
 
     @Test
-    void shouldLoginWithValidCredentials() throws Exception {
-        // Primeiro registrar um cliente
-        RegisterClientRequest registerRequest = new RegisterClientRequest(
-                "Teste Login",
-                "login@example.com",
-                "senha123",
-                "11977777777",
-                new AddressRequest(
-                        "01310-100",
-                        "Av. Paulista",
-                        "3000",
-                        null,
-                        "Bela Vista",
-                        "São Paulo",
-                        "SP"
-                )
-        );
+    void shouldLoginWithValidCredentials() {
+        Map<String, Object> registerRequest = TestDataLoader.loadRegisterClientRequest("loginTest");
+        given()
+                .contentType(ContentType.JSON)
+                .body(registerRequest)
+        .when()
+                .post("/auth/register/client");
 
-        mockMvc.perform(post("/api/v1/auth/register/client")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)));
-
-        // Agora fazer login
-        LoginRequest loginRequest = new LoginRequest("login@example.com", "senha123");
-
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.token").exists())
-                .andExpect(jsonPath("$.data.user.email").value("login@example.com"));
+        Map<String, Object> loginRequest = TestDataLoader.loadLoginRequest("loginTest");
+        given()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+        .when()
+                .post("/auth/login")
+        .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("data.accessToken", notNullValue())
+                .body("data.user.email", equalTo("login@example.com"));
     }
 
     @Test
-    void shouldFailLoginWithInvalidCredentials() throws Exception {
-        LoginRequest loginRequest = new LoginRequest("inexistente@example.com", "senha123");
+    void shouldFailLoginWithInvalidCredentials() {
+        Map<String, Object> loginRequest = TestDataLoader.loadLoginRequest("invalid");
 
-        mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isUnauthorized());
+        given()
+                .contentType(ContentType.JSON)
+                .body(loginRequest)
+        .when()
+                .post("/auth/login")
+        .then()
+                .statusCode(400);
     }
 }

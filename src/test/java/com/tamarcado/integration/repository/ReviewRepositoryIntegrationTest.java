@@ -1,6 +1,6 @@
 package com.tamarcado.integration.repository;
 
-import com.tamarcado.AbstractIntegrationTest;
+import com.tamarcado.AbstractIntegrationTestWithoutDocker;
 import com.tamarcado.TestUtils;
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
 import com.tamarcado.application.port.out.ReviewRepositoryPort;
@@ -25,7 +25,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
-class ReviewRepositoryIntegrationTest extends AbstractIntegrationTest {
+class ReviewRepositoryIntegrationTest extends AbstractIntegrationTestWithoutDocker {
 
     @Autowired
     private ReviewRepositoryPort reviewRepository;
@@ -42,14 +42,13 @@ class ReviewRepositoryIntegrationTest extends AbstractIntegrationTest {
     @Autowired
     private ServiceOfferingRepositoryPort serviceOfferingRepository;
 
-    private User client;
     private User professional;
     private Appointment appointment;
     private Review review;
 
     @BeforeEach
     void setUp() {
-        client = testUtils.createTestClient("client@review.com", "Cliente Review");
+        User client = testUtils.createTestClient("client@review.com", "Cliente Review");
         professional = testUtils.createTestProfessional("prof@review.com", "Prof Review");
 
         Professional prof = professionalRepository.findById(professional.getId())

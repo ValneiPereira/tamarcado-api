@@ -1,0 +1,12 @@
+{
+  "default": {
+    "dateOffsetDays": 1,
+    "time": "14:00",
+    "notes": "Teste de agendamento"
+  },
+  "noNotes": {
+    "dateOffsetDays": 1,
+    "time": "14:00",
+    "notes": null
+  }
+}

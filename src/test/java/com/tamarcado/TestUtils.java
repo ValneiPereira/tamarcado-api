@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 
@@ -36,6 +37,7 @@ public class TestUtils {
     /**
      * Cria um usuário cliente de teste
      */
+    @Transactional
     public User createTestClient(String email, String name) {
         Address address = Address.builder()
                 .cep("01310-100")
@@ -62,6 +64,7 @@ public class TestUtils {
     /**
      * Cria um usuário profissional de teste
      */
+    @Transactional
     public User createTestProfessional(String email, String name) {
         Address address = Address.builder()
                 .cep("01310-100")

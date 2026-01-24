@@ -1,0 +1,32 @@
+{
+  "joaoSilva": {
+    "name": "João Silva",
+    "email": "joao@example.com",
+    "password": "senha123",
+    "phone": "11999999999",
+    "address": {
+      "cep": "01310-100",
+      "street": "Av. Paulista",
+      "number": "1000",
+      "complement": null,
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP"
+    }
+  },
+  "loginTest": {
+    "name": "Teste Login",
+    "email": "login@example.com",
+    "password": "senha123",
+    "phone": "11977777777",
+    "address": {
+      "cep": "01310-100",
+      "street": "Av. Paulista",
+      "number": "3000",
+      "complement": null,
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP"
+    }
+  }
+}

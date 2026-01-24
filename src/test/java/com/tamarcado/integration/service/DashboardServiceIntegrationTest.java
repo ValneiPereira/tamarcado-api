@@ -1,6 +1,6 @@
 package com.tamarcado.integration.service;
 
-import com.tamarcado.AbstractIntegrationTest;
+import com.tamarcado.AbstractIntegrationTestWithoutDocker;
 import com.tamarcado.TestUtils;
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
 import com.tamarcado.application.port.out.ProfessionalRepositoryPort;
@@ -25,7 +25,7 @@ import java.time.LocalTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Transactional
-class DashboardServiceIntegrationTest extends AbstractIntegrationTest {
+class DashboardServiceIntegrationTest extends AbstractIntegrationTestWithoutDocker {
 
     @Autowired
     private DashboardService dashboardService;
