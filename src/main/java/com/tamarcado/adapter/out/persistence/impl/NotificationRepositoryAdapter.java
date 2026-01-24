@@ -27,6 +27,26 @@ public class NotificationRepositoryAdapter implements NotificationRepositoryPort
     }
 
     @Override
+    public Optional<Notification> findByIdWithUser(UUID id) {
+        return jpaRepository.findByIdWithUser(id);
+    }
+
+    @Override
+    public Optional<UUID> findUserIdByNotificationId(UUID id) {
+        return jpaRepository.findUserIdByNotificationId(id);
+    }
+
+    @Override
+    public void markAsReadById(UUID id) {
+        jpaRepository.markAsReadById(id);
+    }
+
+    @Override
+    public Optional<Boolean> findIsReadById(UUID id) {
+        return jpaRepository.findIsReadById(id);
+    }
+
+    @Override
     public List<Notification> findByUserId(UUID userId) {
         return jpaRepository.findByUserIdOrderByCreatedAtDesc(userId);
     }

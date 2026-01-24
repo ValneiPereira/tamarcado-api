@@ -16,6 +16,7 @@ public final class SecurityConstants {
         "/auth/**",
         "/geocoding/**",
         "/reviews/professionals/**",
+        "/search/**",
         "/swagger-ui/**",
         "/swagger-ui.html",
         "/api-docs/**",

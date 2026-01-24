@@ -104,9 +104,6 @@ public class NotificationService {
     public void markAsRead(UUID notificationId) {
         log.debug("Marcando notificação {} como lida", notificationId);
 
-        Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notificação não encontrada"));
-
         // Validar que o usuário autenticado é o dono da notificação
         String email = SecurityUtils.getCurrentUsername();
         if (email == null) {
@@ -116,12 +113,16 @@ public class NotificationService {
         User currentUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
-        if (!notification.getUser().getId().equals(currentUser.getId())) {
+        // Obter o userId da notificação sem carregar a entidade completa (evita problemas com JSON converter)
+        UUID notificationUserId = notificationRepository.findUserIdByNotificationId(notificationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Notificação não encontrada"));
+
+        if (!notificationUserId.equals(currentUser.getId())) {
             throw new BusinessException("Acesso negado. Você só pode marcar suas próprias notificações como lidas.");
         }
 
-        notification.setIsRead(true);
-        notificationRepository.save(notification);
+        // Atualizar diretamente no banco sem carregar a entidade completa (evita problemas com JSON converter)
+        notificationRepository.markAsReadById(notificationId);
 
         log.info("Notificação {} marcada como lida pelo usuário {}", notificationId, currentUser.getId());
     }
