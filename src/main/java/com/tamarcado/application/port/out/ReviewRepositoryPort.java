@@ -21,4 +21,8 @@ public interface ReviewRepositoryPort {
     List<Review> findByProfessionalId(UUID professionalId);
 
     boolean existsByAppointmentId(UUID appointmentId);
+
+    long countByProfessionalId(UUID professionalId);
+
+    Double calculateAverageRatingByProfessionalId(UUID professionalId);
 }

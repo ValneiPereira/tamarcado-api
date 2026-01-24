@@ -1,0 +1,25 @@
+{
+  "mariaSantos": {
+    "name": "Maria Santos",
+    "email": "maria@example.com",
+    "password": "senha123",
+    "phone": "11988888888",
+    "address": {
+      "cep": "01310-100",
+      "street": "Av. Paulista",
+      "number": "2000",
+      "complement": null,
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP"
+    },
+    "category": "BELEZA",
+    "serviceType": "CABELEIREIRO",
+    "services": [
+      {
+        "name": "Corte de Cabelo",
+        "price": 50.00
+      }
+    ]
+  }
+}

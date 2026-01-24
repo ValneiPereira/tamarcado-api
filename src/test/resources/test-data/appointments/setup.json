@@ -1,0 +1,12 @@
+{
+  "service": {
+    "name": "Corte de Cabelo",
+    "price": 50.00
+  },
+  "client": {
+    "name": "Cliente Teste"
+  },
+  "professional": {
+    "name": "Profissional Teste"
+  }
+}

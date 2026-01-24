@@ -30,3 +30,6 @@ geocoding:
     provider: viacep # viacep ou google
     viacep:
       base-url: https://viacep.com.br/ws
+    google:
+      base-url: https://maps.googleapis.com/maps/api
+      api-key: # Configurar quando necessário

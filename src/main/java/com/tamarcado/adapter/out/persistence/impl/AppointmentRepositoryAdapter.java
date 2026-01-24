@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.persistence.impl;
 
-import com.tamarcado.adapter.out.persistence.jpa.AppointmentJpaRepository;
+import com.tamarcado.adapter.out.persistence.repository.AppointmentJpaRepository;
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
 import com.tamarcado.domain.model.appointment.Appointment;
 import com.tamarcado.domain.model.appointment.AppointmentStatus;
@@ -70,5 +70,20 @@ public class AppointmentRepositoryAdapter implements AppointmentRepositoryPort {
     @Override
     public long countByProfessionalIdAndStatus(UUID professionalId, AppointmentStatus status) {
         return jpaRepository.countByProfessionalIdAndStatus(professionalId, status);
+    }
+
+    @Override
+    public List<Appointment> findByProfessionalIdAndDateRangeAndStatus(
+            UUID professionalId,
+            LocalDate startDate,
+            LocalDate endDate,
+            AppointmentStatus status
+    ) {
+        return jpaRepository.findByProfessionalIdAndDateRangeAndStatus(professionalId, startDate, endDate, status);
+    }
+
+    @Override
+    public List<Appointment> findByClientIdAndStatusIn(UUID clientId, List<AppointmentStatus> statuses) {
+        return jpaRepository.findByClientIdAndStatusIn(clientId, statuses);
     }
 }

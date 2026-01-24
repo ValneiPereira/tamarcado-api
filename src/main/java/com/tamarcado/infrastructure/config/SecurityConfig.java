@@ -18,6 +18,9 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
@@ -34,27 +37,34 @@ public class SecurityConfig {
         http
                 // Desabilita CSRF pois estamos usando JWT
                 .csrf(AbstractHttpConfigurer::disable)
-                
+
                 // Configura CORS
                 .cors(cors -> cors.configurationSource(
                         new org.springframework.web.cors.UrlBasedCorsConfigurationSource()))
-                
+
                 // Define que não usaremos sessões (stateless)
-                .sessionManagement(session -> 
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
                 // Configura autorização de requisições
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos
                         .requestMatchers(SecurityConstants.PUBLIC_ENDPOINTS).permitAll()
-                        
+                        // GET /professionals/{id} - visualização pública (mas não /professionals/me/**)
+                        // Primeiro negamos /professionals/me/** para garantir que requer autenticação
+                        .requestMatchers("/professionals/me/**").authenticated()
+                        // Depois permitimos GET /professionals/* (qualquer ID, mas não /me)
+                        .requestMatchers(HttpMethod.GET, "/professionals/*").permitAll()
+
                         // Demais endpoints requerem autenticação
-                        .anyRequest().authenticated()
-                )
-                
+                        .anyRequest().authenticated())
+
+                // Configura tratamento de exceções
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+
                 // Adiciona o filtro JWT antes do filtro de autenticação padrão
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                
+
                 // Configura authentication provider
                 .authenticationProvider(authenticationProvider());
 

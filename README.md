@@ -1,18 +1,43 @@
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ValneiPereira_tamarcado-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ValneiPereira_tamarcado-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+
 # TÁ MARCADO! - API Backend
 
 Backend API desenvolvida com Spring Boot 3.2+ e Java 21 seguindo os princípios de **Clean Architecture** e **Hexagonal Architecture (Ports & Adapters)**.
 
 ## 🚀 Tecnologias
 
+### Backend
 - **Java 21** (LTS)
 - **Spring Boot 3.2+**
-- **PostgreSQL 16**
-- **Redis 7**
-- **Spring Security + JWT**
-- **MapStruct** (Mappers)
-- **Lombok**
-- **Flyway** (Migrations)
-- **Swagger/OpenAPI 3.0**
+- **Spring Data JPA** - Persistência de dados
+- **Spring Security + JWT** - Autenticação e autorização
+- **Spring Boot Actuator** - Monitoramento e métricas
+- **Spring Boot Validation** - Validação de dados
+
+### Banco de Dados e Cache
+- **PostgreSQL 16** - Banco de dados relacional
+- **Redis 7** - Cache em memória
+- **Flyway** - Migrations de banco de dados
+
+### Ferramentas e Bibliotecas
+- **MapStruct** - Mapeamento de objetos (DTO ↔ Domain)
+- **Lombok** - Redução de boilerplate
+- **Swagger/OpenAPI 3.0** - Documentação da API
+- **JJWT 0.12.3** - Geração e validação de tokens JWT
+
+### Testes
+- **JUnit 5** - Framework de testes
+- **Mockito** - Mocking para testes unitários
+- **Testcontainers** - Testes de integração com containers Docker
+- **Rest Assured** - Testes de API REST
+- **H2 Database** - Banco de dados em memória para testes
+- **JaCoCo** - Cobertura de código
+
+### Qualidade de Código
+- **SonarCloud** - Análise estática de código e cobertura de testes
+  - [Quality Gate](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+  - [Coverage](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
 
 ## 📋 Pré-requisitos
 
@@ -95,6 +120,38 @@ src/main/java/com/tamarcado/
     ├── util/
     └── constant/
 ```
+```
+┌─────────────────────────────────────┐
+│   PRESENTATION (Adapter In)         │  ← Controllers REST
+│   - Recebe requisições HTTP         │
+│   - Valida DTOs                     │
+│   - Trata exceções                  │
+└─────────────────────────────────────┘
+              ↓↑
+┌─────────────────────────────────────┐
+│   APPLICATION LAYER                 │  ← Lógica de negócio
+│   - Services                        │
+│   - Use Cases                       │
+│   - Ports (Interfaces)              │
+└─────────────────────────────────────┘
+              ↓↑
+┌─────────────────────────────────────┐
+│   DOMAIN LAYER                      │  ← Core do negócio
+│   - Entidades                       │
+│   - Value Objects                   │
+│   - Regras de negócio               │
+└─────────────────────────────────────┘
+              ↓↑
+┌─────────────────────────────────────┐
+│   INFRASTRUCTURE (Adapter Out)      │  ← Implementações técnicas
+│   - Repositories (JPA)              │
+│   - Cache (Redis)                   │
+│   - APIs Externas                   │
+│   - Configurações                   │
+└─────────────────────────────────────┘
+```
+
+---
 
 ## 🔐 Segurança
 
@@ -119,12 +176,43 @@ As migrations são executadas automaticamente na inicialização da aplicação.
 
 ## 🧪 Testes
 
+O projeto possui uma suíte completa de testes unitários e de integração. A análise de qualidade de código e cobertura de testes é realizada automaticamente pelo **SonarCloud**.
+
+### Executar Testes Localmente
+
 ```bash
 # Executar todos os testes
 mvn test
 
 # Executar testes de integração
 mvn verify
+
+# Executar testes com relatório de cobertura
+mvn clean verify
+```
+
+### SonarCloud
+
+Os testes e a análise de qualidade de código estão disponíveis no **SonarCloud**:
+
+- 🔗 [Dashboard do Projeto](https://sonarcloud.io/summary/new_code?id=ValneiPereira_tamarcado-api)
+- 📊 **Quality Gate**: Status da qualidade do código
+- 📈 **Coverage**: Cobertura de testes
+
+Os badges no topo do README mostram o status atual:
+- ✅ **Quality Gate**: Indica se o código atende aos padrões de qualidade
+- 📊 **Coverage**: Mostra a porcentagem de cobertura de testes
+
+### Estrutura de Testes
+
+```
+src/test/java/com/tamarcado/
+├── integration/              # Testes de integração
+│   ├── controller/          # Testes de controllers
+│   ├── repository/          # Testes de repositórios
+│   └── service/             # Testes de serviços
+├── config/                   # Configurações de teste
+└── TestUtils.java           # Utilitários para testes
 ```
 
 ## 📦 Build
@@ -163,4 +251,4 @@ Este projeto é proprietário.
 
 ## 👥 Equipe
 
-Desenvolvido pela equipe Tá Marcado!
+Desenvolvido por Valnei Pereira.

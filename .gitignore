@@ -20,6 +20,8 @@ buildNumber.properties
 *.swp
 *.swo
 *~
+*.code-workspace
+.formatter/
 
 # Spring Boot
 application-local.yml

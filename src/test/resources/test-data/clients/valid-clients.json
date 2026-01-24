@@ -1,0 +1,44 @@
+{
+  "mariaSilva": {
+    "name": "Maria Silva",
+    "email": "maria.silva@email.com",
+    "phone": "11987654321",
+    "address": {
+      "street": "Rua das Flores",
+      "number": "123",
+      "complement": "Apto 45",
+      "neighborhood": "Centro",
+      "city": "São Paulo",
+      "state": "SP",
+      "cep": "01310-100"
+    }
+  },
+  "joaoSantos": {
+    "name": "João Santos",
+    "email": "joao.santos@email.com",
+    "phone": "11976543210",
+    "address": {
+      "street": "Av. Paulista",
+      "number": "1000",
+      "complement": null,
+      "neighborhood": "Bela Vista",
+      "city": "São Paulo",
+      "state": "SP",
+      "cep": "01310-100"
+    }
+  },
+  "anaCosta": {
+    "name": "Ana Costa",
+    "email": "ana.costa@email.com",
+    "phone": "11965432109",
+    "address": {
+      "street": "Rua Augusta",
+      "number": "500",
+      "complement": null,
+      "neighborhood": "Consolação",
+      "city": "São Paulo",
+      "state": "SP",
+      "cep": "01310-100"
+    }
+  }
+}

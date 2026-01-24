@@ -7,11 +7,20 @@ public final class SecurityConstants {
     public static final String AUTHORITIES_KEY = "roles";
     public static final String USER_ID_KEY = "userId";
     
-    // Endpoints públicos
+    /**
+     * Endpoints públicos.
+     * Paths relativos ao context-path (/api/v1): Spring Security faz match
+     * no servletPath, que não inclui o context-path.
+     */
     public static final String[] PUBLIC_ENDPOINTS = {
-        "/api/v1/auth/**",
-        "/api/v1/swagger-ui/**",
-        "/api/v1/api-docs/**",
+        "/auth/**",
+        "/geocoding/**",
+        "/reviews/professionals/**",
+        "/search/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html",
+        "/api-docs/**",
+        "/v3/api-docs/**",
         "/actuator/health",
         "/actuator/info"
     };
