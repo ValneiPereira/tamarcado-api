@@ -59,6 +59,8 @@ public class SearchService {
                     // Primeira ocorrência deste serviço
                     Set<UUID> professionals = new HashSet<>();
                     professionals.add(service.getProfessional().getId());
+                    Set<UUID> serviceIds = new HashSet<>();
+                    serviceIds.add(service.getId());
 
                     return new ServiceGroupInfo(
                             service.getName(),
@@ -66,13 +68,15 @@ public class SearchService {
                             service.getProfessional().getServiceType(),
                             service.getPrice(),
                             service.getPrice(),
-                            professionals
+                            professionals,
+                            serviceIds
                     );
                 } else {
-                    // Já existe, atualizar min/max e adicionar profissional
+                    // Já existe, atualizar min/max e adicionar profissional e serviceId
                     BigDecimal minPrice = existing.minPrice.min(service.getPrice());
                     BigDecimal maxPrice = existing.maxPrice.max(service.getPrice());
                     existing.professionals.add(service.getProfessional().getId());
+                    existing.serviceIds.add(service.getId());
 
                     return new ServiceGroupInfo(
                             existing.serviceName,
@@ -80,7 +84,8 @@ public class SearchService {
                             existing.serviceType,
                             minPrice,
                             maxPrice,
-                            existing.professionals
+                            existing.professionals,
+                            existing.serviceIds
                     );
                 }
             });
@@ -94,7 +99,8 @@ public class SearchService {
                         group.serviceType,
                         group.minPrice,
                         group.maxPrice,
-                        (long) group.professionals.size()
+                        (long) group.professionals.size(),
+                        new ArrayList<>(group.serviceIds)
                 ))
                 .sorted(Comparator.comparing(ServiceSearchResponse::serviceName))
                 .collect(Collectors.toList());
@@ -247,15 +253,17 @@ public class SearchService {
         BigDecimal minPrice;
         BigDecimal maxPrice;
         final Set<UUID> professionals;
+        final Set<UUID> serviceIds;
 
         ServiceGroupInfo(String serviceName, Category category, ServiceType serviceType,
-                        BigDecimal minPrice, BigDecimal maxPrice, Set<UUID> professionals) {
+                        BigDecimal minPrice, BigDecimal maxPrice, Set<UUID> professionals, Set<UUID> serviceIds) {
             this.serviceName = serviceName;
             this.category = category;
             this.serviceType = serviceType;
             this.minPrice = minPrice;
             this.maxPrice = maxPrice;
             this.professionals = professionals;
+            this.serviceIds = serviceIds;
         }
     }
 }
