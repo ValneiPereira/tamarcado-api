@@ -12,6 +12,14 @@ public interface NotificationRepositoryPort {
 
     Optional<Notification> findById(UUID id);
 
+    Optional<Notification> findByIdWithUser(UUID id);
+
+    Optional<UUID> findUserIdByNotificationId(UUID id);
+
+    void markAsReadById(UUID id);
+
+    Optional<Boolean> findIsReadById(UUID id);
+
     List<Notification> findByUserId(UUID userId);
 
     List<Notification> findByUserIdAndIsRead(UUID userId, Boolean isRead);
