@@ -32,50 +32,38 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
 
     @PostMapping
-    @Operation(summary = "Criar novo agendamento",
-               description = "Cria um novo agendamento para o cliente autenticado")
+    @Operation(summary = "Criar novo agendamento", description = "Cria um novo agendamento para o cliente autenticado")
     public ResponseEntity<ApiResponse<AppointmentResponse>> createAppointment(
-            @Valid @RequestBody CreateAppointmentRequest request
-    ) {
+        @Valid @RequestBody CreateAppointmentRequest request) {
+
         log.debug("Criando novo agendamento");
+        var appointment = appointmentService.createAppointment(request);
 
-        AppointmentResponse appointment = appointmentService.createAppointment(request);
-
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(appointment, "Agendamento criado com sucesso"));
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(ApiResponse.success(appointment, "Agendamento criado com sucesso"));
     }
 
     @GetMapping("/client")
-    @Operation(summary = "Listar agendamentos do cliente",
-               description = "Lista todos os agendamentos do cliente autenticado, opcionalmente filtrado por status")
+    @Operation(summary = "Listar agendamentos do cliente", description = "Lista todos os agendamentos do cliente autenticado, opcionalmente filtrado por status")
     public ResponseEntity<ApiResponse<List<AppointmentResponse>>> getAppointmentsByClient(
             @Parameter(description = "Status do agendamento (PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED)")
-            @RequestParam(required = false) AppointmentStatus status
-    ) {
+            @RequestParam(required = false) AppointmentStatus status) {
+
         log.debug("Listando agendamentos do cliente com status: {}", status);
 
-        List<AppointmentResponse> appointments = appointmentService.getAppointmentsByClient(status);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(appointments, "Agendamentos encontrados com sucesso")
-        );
+        var appointments = appointmentService.getAppointmentsByClient(status);
+        return ResponseEntity.ok(ApiResponse.success(appointments, "Agendamentos encontrados com sucesso"));
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "Buscar agendamento por ID",
-               description = "Retorna os detalhes de um agendamento específico do cliente autenticado")
+    @Operation(summary = "Buscar agendamento por ID", description = "Retorna os detalhes de um agendamento específico do cliente autenticado")
     public ResponseEntity<ApiResponse<AppointmentResponse>> getAppointmentById(
             @Parameter(description = "ID do agendamento")
-            @PathVariable UUID id
-    ) {
+            @PathVariable UUID id    ) {
         log.debug("Buscando agendamento: {}", id);
 
         AppointmentResponse appointment = appointmentService.getAppointmentById(id);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(appointment, "Agendamento encontrado com sucesso")
-        );
+        return ResponseEntity.ok(ApiResponse.success(appointment, "Agendamento encontrado com sucesso"));
     }
 
     @DeleteMapping("/{id}")
@@ -83,15 +71,12 @@ public class AppointmentController {
                description = "Cancela um agendamento do cliente autenticado (apenas se status for PENDING)")
     public ResponseEntity<ApiResponse<String>> cancelAppointment(
             @Parameter(description = "ID do agendamento")
-            @PathVariable UUID id
-    ) {
-        log.debug("Cancelando agendamento: {}", id);
+            @PathVariable UUID id    ) {
 
+        log.debug("Cancelando agendamento: {}", id);
         appointmentService.cancelAppointment(id);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("Agendamento cancelado com sucesso", "Agendamento cancelado com sucesso")
-        );
+        return ResponseEntity.ok(ApiResponse.success("Agendamento cancelado com sucesso", "Agendamento cancelado com sucesso"));
     }
 
     @GetMapping("/professional")
