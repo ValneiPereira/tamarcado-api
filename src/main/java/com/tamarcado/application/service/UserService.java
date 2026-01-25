@@ -134,6 +134,28 @@ public class UserService {
     }
 
     /**
+     * Atualiza a foto de perfil do usuário autenticado
+     */
+    @Transactional
+    public UserResponse updatePhoto(String photoUrl) {
+        String email = SecurityUtils.getCurrentUsername();
+
+        if (email == null) {
+            throw new BusinessException("Usuário não autenticado");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        user.setPhoto(photoUrl);
+        User updatedUser = userRepository.save(user);
+        
+        log.info("Foto do usuário {} atualizada", updatedUser.getId());
+
+        return userDtoMapper.toResponse(updatedUser);
+    }
+
+    /**
      * Verifica se o usuário tem permissão para acessar um recurso
      */
     public void validateUserAccess(UUID userId) {
