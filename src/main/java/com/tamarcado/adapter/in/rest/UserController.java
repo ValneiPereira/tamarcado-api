@@ -3,6 +3,7 @@ package com.tamarcado.adapter.in.rest;
 import com.tamarcado.application.service.UserService;
 import com.tamarcado.shared.constant.ApiConstants;
 import com.tamarcado.shared.dto.request.ChangePasswordRequest;
+import com.tamarcado.shared.dto.request.UpdatePhotoRequest;
 import com.tamarcado.shared.dto.request.UpdateUserRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
 import com.tamarcado.shared.dto.response.UserResponse;
@@ -54,6 +55,17 @@ public class UserController {
         userService.changePassword(request);
 
         return ResponseEntity.ok(ApiResponse.success("Senha alterada com sucesso", "Senha alterada com sucesso"));
+    }
+
+    @PutMapping("/me/photo")
+    @Operation(summary = "Atualizar foto de perfil", description = "Atualiza a foto de perfil do usuário autenticado")
+    public ResponseEntity<ApiResponse<UserResponse>> updatePhoto(
+        @Valid @RequestBody UpdatePhotoRequest request) {
+        log.debug("Atualizando foto de perfil do usuário autenticado");
+
+        UserResponse user = userService.updatePhoto(request.photoUrl());
+
+        return ResponseEntity.ok(ApiResponse.success(user, "Foto atualizada com sucesso"));
     }
 
     @DeleteMapping("/me")

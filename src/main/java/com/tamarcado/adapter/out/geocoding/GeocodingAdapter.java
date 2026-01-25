@@ -57,8 +57,14 @@ public class GeocodingAdapter implements GeocodingPort {
         String cleanCep = cep.replaceAll("[^0-9]", "");
 
         try {
+
+            String baseUrl = viaCepBaseUrl.endsWith("/") ? viaCepBaseUrl.substring(0, viaCepBaseUrl.length() - 1) : viaCepBaseUrl;
+            String uri = String.format("%s/%s/json/", baseUrl, cleanCep);
+
+            log.debug("Buscando CEP na URL: {}", uri);
+
             ViaCepResponse viaCepResponse = restClient.get()
-                    .uri("{baseUrl}/{cep}/json/", viaCepBaseUrl, cleanCep)
+                    .uri(uri)
                     .retrieve()
                     .body(ViaCepResponse.class);
 
@@ -97,7 +103,7 @@ public class GeocodingAdapter implements GeocodingPort {
             String encodedAddress = URLEncoder.encode(address, StandardCharsets.UTF_8);
             String encodedApiKey = URLEncoder.encode(googleApiKey, StandardCharsets.UTF_8);
             String uri = String.format("%s/geocode/json?address=%s&key=%s", baseUrl, encodedAddress, encodedApiKey);
-            
+
             GoogleGeocodeResponse geocodeResponse = restClient.get()
                     .uri(uri)
                     .retrieve()
@@ -130,12 +136,12 @@ public class GeocodingAdapter implements GeocodingPort {
             URI uri = URI.create(url);
             String host = uri.getHost();
             String scheme = uri.getScheme();
-            
+
             // Permitir apenas domínios do Google Maps
             if (host == null || (!host.equals("maps.googleapis.com") && !host.endsWith(".maps.googleapis.com"))) {
                 throw new BusinessException("URL base do Google não é um domínio confiável: " + host);
             }
-            
+
             // Verificar que é HTTPS
             if (!"https".equalsIgnoreCase(scheme)) {
                 throw new BusinessException("URL base do Google deve usar HTTPS: " + url);
