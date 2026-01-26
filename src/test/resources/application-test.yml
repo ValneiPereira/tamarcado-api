@@ -30,12 +30,11 @@ jwt:
 
 geocoding:
   api:
-    provider: viacep
+    provider: nominatim
     viacep:
       base-url: https://viacep.com.br/ws
-    google:
-      base-url: https://maps.googleapis.com/maps/api
-      api-key: ""
+    nominatim:
+      base-url: https://nominatim.openstreetmap.org
 
 logging:
   level:

@@ -1,6 +1,6 @@
 package com.tamarcado.adapter.out.geocoding;
 
-import com.tamarcado.adapter.out.geocoding.dto.GoogleGeocodeResponse;
+import com.tamarcado.adapter.out.geocoding.dto.NominatimResponse;
 import com.tamarcado.adapter.out.geocoding.dto.ViaCepResponse;
 import com.tamarcado.application.port.out.GeocodingPort;
 import com.tamarcado.shared.dto.response.AddressResponse;
@@ -10,59 +10,46 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
-
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import org.springframework.core.ParameterizedTypeReference;
 
 @Slf4j
 @Component
 public class GeocodingAdapter implements GeocodingPort {
 
+    public static final String COUNTRY_CODES_BR = "/search?format=json&q={q}&limit=1&countrycodes=br";
+    public static final String USER_AGENT = "User-Agent";
+    public static final String TAMARCADO_IA_BR = "tamarcado-api/1.0 (contato@tamarcado.ia.br)";
     private final RestClient restClient;
-
-    @Value("${geocoding.api.provider}")
-    private String provider;
 
     @Value("${geocoding.api.viacep.base-url}")
     private String viaCepBaseUrl;
 
-    @Value("${geocoding.api.google.base-url}")
-    private String googleBaseUrl;
-
-    @Value("${geocoding.api.google.api-key:}")
-    private String googleApiKey;
+    @Value("${geocoding.api.nominatim.base-url}")
+    private String nominatimBaseUrl;
 
     public GeocodingAdapter(RestClient.Builder restClientBuilder) {
         this.restClient = restClientBuilder.build();
     }
 
     @Override
-    public CoordinatesResponse addressToCoordinates(String street, String number, String city, String state, String cep) {
-        log.debug("Convertendo endereço para coordenadas: {}, {}, {}, {}, {}", street, number, city, state, cep);
-
-        if ("google".equalsIgnoreCase(provider) && !googleApiKey.isEmpty()) {
-            return addressToCoordinatesGoogle(street, number, city, state, cep);
-        } else {
-            // ViaCEP não fornece coordenadas, retornar null
-            log.warn("ViaCEP não fornece coordenadas. Configure Google Maps API para geocoding.");
-            return new CoordinatesResponse(null, null);
-        }
+    public CoordinatesResponse addressToCoordinates(String street, String number, String city, String state,
+            String cep) {
+        log.debug("Convertendo endereço para coordenadas: {}, {}", city, state);
+        return addressToCoordinatesNominatim(city, state);
     }
 
     @Override
     public AddressResponse cepToAddress(String cep) {
-        log.debug("Buscando endereço por CEP: {}", cep);
 
-        String cleanCep = cep.replaceAll("[^0-9]", "");
+        log.debug("Buscando endereço por CEP: {}", cep);
+        var cleanCep = cep.replaceAll("[^0-9]", "");
 
         try {
 
-            String baseUrl = viaCepBaseUrl.endsWith("/") ? viaCepBaseUrl.substring(0, viaCepBaseUrl.length() - 1) : viaCepBaseUrl;
-            String uri = String.format("%s/%s/json/", baseUrl, cleanCep);
+            var baseUrl = viaCepBaseUrl.endsWith("/") ? viaCepBaseUrl.substring(0, viaCepBaseUrl.length() - 1) : viaCepBaseUrl;
+            var uri = String.format("%s/%s/json/", baseUrl, cleanCep);
 
             log.debug("Buscando CEP na URL: {}", uri);
-
             ViaCepResponse viaCepResponse = restClient.get()
                     .uri(uri)
                     .retrieve()
@@ -86,7 +73,7 @@ public class GeocodingAdapter implements GeocodingPort {
                     viaCepResponse.localidade(),
                     viaCepResponse.uf(),
                     null, // latitude - ViaCEP não fornece coordenadas
-                    null  // longitude - ViaCEP não fornece coordenadas
+                    null // longitude - ViaCEP não fornece coordenadas
             );
         } catch (BusinessException e) {
             throw e;
@@ -96,62 +83,36 @@ public class GeocodingAdapter implements GeocodingPort {
         }
     }
 
-    private CoordinatesResponse addressToCoordinatesGoogle(String street, String number, String city, String state, String cep) {
-        String address = String.format("%s %s, %s, %s, %s", street, number, city, state, cep);
-
+    private CoordinatesResponse addressToCoordinatesNominatim(String city, String state) {
         try {
 
-            validateGoogleBaseUrl(googleBaseUrl);
+            var query = String.format("%s %s Brasil", city, state);
 
-            String baseUrl = googleBaseUrl.endsWith("/") ? googleBaseUrl.substring(0, googleBaseUrl.length() - 1) : googleBaseUrl;
-            String encodedAddress = URLEncoder.encode(address, StandardCharsets.UTF_8);
-            String encodedApiKey = URLEncoder.encode(googleApiKey, StandardCharsets.UTF_8);
-            String uri = String.format("%s/geocode/json?address=%s&key=%s", baseUrl, encodedAddress, encodedApiKey);
+            log.debug("Buscando coordenadas no Nominatim (Simplificado): {}", query);
+            var responseType = new ParameterizedTypeReference<java.util.List<NominatimResponse>>() {
+            };
 
-            GoogleGeocodeResponse geocodeResponse = restClient.get()
-                    .uri(uri)
+            var results = restClient.get()
+                    .uri(nominatimBaseUrl + COUNTRY_CODES_BR, query)
+                    .header(USER_AGENT, TAMARCADO_IA_BR)
                     .retrieve()
-                    .body(GoogleGeocodeResponse.class);
+                    .body(responseType);
 
-            if (geocodeResponse == null) {
-                throw new BusinessException("Erro ao converter endereço para coordenadas");
+            if (results == null || results.isEmpty()) {
+
+                log.warn("Nenhum resultado encontrado no Nominatim para o endereço: {}", query);
+                return new CoordinatesResponse(null, null);
             }
 
-            if ("OK".equals(geocodeResponse.status()) && !geocodeResponse.results().isEmpty()) {
-                GoogleGeocodeResponse.Result firstResult = geocodeResponse.results().getFirst();
-                GoogleGeocodeResponse.Location location = firstResult.geometry().location();
+            var firstResult = results.get(0);
 
-                return new CoordinatesResponse(location.lat(), location.lng());
-            }
-
-            throw new BusinessException("Erro ao converter endereço para coordenadas");
-        } catch (BusinessException e) {
-            throw e;
+            log.info("Nominatim encontrou coordenadas para {}: lat={}, lon={}", query, firstResult.lat(), firstResult.lon());
+            return new CoordinatesResponse(
+                    Double.parseDouble(firstResult.lat()),
+                    Double.parseDouble(firstResult.lon()));
         } catch (Exception e) {
-            log.error("Erro ao converter endereço para coordenadas: {}", address, e);
-            throw new BusinessException("Erro ao converter endereço para coordenadas: " + e.getMessage());
-        }
-    }
-
-
-    private void validateGoogleBaseUrl(String url) {
-        try {
-
-            URI uri = URI.create(url);
-            String host = uri.getHost();
-            String scheme = uri.getScheme();
-
-            // Permitir apenas domínios do Google Maps
-            if (host == null || (!host.equals("maps.googleapis.com") && !host.endsWith(".maps.googleapis.com"))) {
-                throw new BusinessException("URL base do Google não é um domínio confiável: " + host);
-            }
-
-            // Verificar que é HTTPS
-            if (!"https".equalsIgnoreCase(scheme)) {
-                throw new BusinessException("URL base do Google deve usar HTTPS: " + url);
-            }
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("URL base do Google inválida: " + url, e);
+            log.error("Erro ao converter endereço para coordenadas no Nominatim: {}, {}", city, state, e);
+            throw new BusinessException("Erro ao converter endereço para coordenadas (OSM): " + e.getMessage());
         }
     }
 }

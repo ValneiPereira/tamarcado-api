@@ -18,7 +18,7 @@ jwt:
   refresh-expiration: 604800000 # 7 dias em milissegundos
 
 cors:
-  allowed-origins: 
+  allowed-origins:
     - http://localhost:3000
     - http://localhost:19006
     - exp://localhost:19000
@@ -26,10 +26,9 @@ cors:
 
 geocoding:
   api:
-    enabled: false # Ativar quando configurar API key
-    provider: viacep # viacep ou google
+    enabled: true # Ativar quando configurar API key
+    provider: nominatim # viacep, google ou nominatim
     viacep:
       base-url: https://viacep.com.br/ws
-    google:
-      base-url: https://maps.googleapis.com/maps/api
-      api-key: # Configurar quando necessário
+    nominatim:
+      base-url: https://nominatim.openstreetmap.org

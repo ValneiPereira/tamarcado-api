@@ -24,7 +24,6 @@ public class GeocodingController implements GeocodingControllerApi {
 
         log.info("Recebida requisição de conversão de endereço para coordenadas: {}", request.cep());
         var response = geocodingService.addressToCoordinates(request);
-
         return ResponseEntity.ok(ApiResponse.success(response, "Endereço convertido com sucesso"));
     }
 
@@ -33,7 +32,6 @@ public class GeocodingController implements GeocodingControllerApi {
 
         log.info("Recebida requisição de busca de endereço por CEP: {}", request.cep());
         var response = geocodingService.cepToAddress(request);
-
         return ResponseEntity.ok(ApiResponse.success(response, "Endereço encontrado com sucesso"));
     }
 }
