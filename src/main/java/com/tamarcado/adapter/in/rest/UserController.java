@@ -61,9 +61,11 @@ public class UserController {
     @Operation(summary = "Atualizar foto de perfil", description = "Atualiza a foto de perfil do usuário autenticado")
     public ResponseEntity<ApiResponse<UserResponse>> updatePhoto(
         @Valid @RequestBody UpdatePhotoRequest request) {
-        log.debug("Atualizando foto de perfil do usuário autenticado");
+        log.debug("Atualizando foto de perfil. URL recebida: {}", request.photoUrl());
 
         UserResponse user = userService.updatePhoto(request.photoUrl());
+        
+        log.debug("Foto atualizada. Photo no UserResponse: {}", user.photo());
 
         return ResponseEntity.ok(ApiResponse.success(user, "Foto atualizada com sucesso"));
     }

@@ -80,9 +80,13 @@ public class GeocodingAdapter implements GeocodingPort {
             return new AddressResponse(
                     viaCepResponse.cep(),
                     viaCepResponse.logradouro(),
+                    null, // number - ViaCEP não fornece número
+                    viaCepResponse.complemento(), // complement - ViaCEP pode fornecer
                     viaCepResponse.bairro(),
                     viaCepResponse.localidade(),
-                    viaCepResponse.uf()
+                    viaCepResponse.uf(),
+                    null, // latitude - ViaCEP não fornece coordenadas
+                    null  // longitude - ViaCEP não fornece coordenadas
             );
         } catch (BusinessException e) {
             throw e;

@@ -10,5 +10,6 @@ public record UserResponse(
         String email,
         String phone,
         String photo,
-        UserType userType
+        UserType userType,
+        AddressResponse address
 ) {}
