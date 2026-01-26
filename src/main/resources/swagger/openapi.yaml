@@ -1,0 +1,1692 @@
+openapi: 3.0.1
+info:
+  title: Tá Marcado! API
+  description: API Backend para o aplicativo Tá Marcado! - Plataforma de agendamento de serviços
+  contact:
+    name: Equipe Tá Marcado!
+    email: contato@tamarcado.com.br
+  license:
+    name: Proprietary
+    url: https://tamarcado.com.br
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor de Desenvolvimento
+  - url: https://api.tamarcado.com.br/v1
+    description: Servidor de Produção
+
+tags:
+  - name: Agendamentos
+    description: Endpoints para gerenciamento de agendamentos
+  - name: Busca
+    description: Endpoints para busca de serviços e profissionais
+  - name: Users
+    description: Endpoints para gerenciamento de perfil do usuário
+  - name: Notificações
+    description: Endpoints para gerenciamento de notificações e device tokens
+  - name: Dashboard
+    description: Endpoints para dashboards de profissionais e clientes
+  - name: Avaliações
+    description: Endpoints para gerenciamento de avaliações
+  - name: Autenticação
+    description: Endpoints de autenticação e registro
+  - name: Geocoding
+    description: Endpoints de geocoding e busca de endereços
+  - name: Profissionais
+    description: Endpoints para gerenciamento de profissionais e seus serviços
+
+paths:
+  # ==================== USERS ====================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Obter perfil do usuário autenticado
+      description: Retorna os dados do perfil do usuário atualmente autenticado
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+
+    put:
+      tags: [Users]
+      summary: Atualizar perfil do usuário autenticado
+      description: Atualiza os dados do perfil do usuário atualmente autenticado
+      operationId: updateCurrentUser
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserResponse'
+
+    delete:
+      tags: [Users]
+      summary: Desativar conta do usuário autenticado
+      description: Desativa a conta do usuário atualmente autenticado (soft delete)
+      operationId: deleteCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /users/me/password:
+    put:
+      tags: [Users]
+      summary: Alterar senha do usuário autenticado
+      description: Altera a senha do usuário atualmente autenticado
+      operationId: changePassword
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  # ==================== AUTHENTICATION ====================
+  /auth/login:
+    post:
+      tags: [Autenticação]
+      summary: Login
+      description: Autentica um usuário e retorna tokens JWT
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+
+  /auth/register/client:
+    post:
+      tags: [Autenticação]
+      summary: Registrar cliente
+      description: Cria uma nova conta de cliente
+      operationId: registerClient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterClientRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+
+  /auth/register/professional:
+    post:
+      tags: [Autenticação]
+      summary: Registrar profissional
+      description: Cria uma nova conta de profissional
+      operationId: registerProfessional
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterProfessionalRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+
+  /auth/refresh-token:
+    post:
+      tags: [Autenticação]
+      summary: Refresh token
+      description: Gera novos tokens usando o refresh token
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthResponse'
+
+  # ==================== GEOCODING ====================
+  /geocoding/cep:
+    post:
+      tags: [Geocoding]
+      summary: Buscar endereço por CEP
+      description: Busca informações completas de endereço através do CEP
+      operationId: cepToAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CepRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAddressResponse'
+
+  /geocoding/address-to-coords:
+    post:
+      tags: [Geocoding]
+      summary: Converter endereço para coordenadas
+      description: Converte um endereço completo em coordenadas (latitude, longitude)
+      operationId: addressToCoordinates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddressToCoordsRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCoordinatesResponse'
+
+  # ==================== SEARCH ====================
+  /search/services:
+    get:
+      tags: [Busca]
+      summary: Buscar serviços
+      description: Busca serviços agrupados por nome, categoria e tipo. Retorna preço mínimo, máximo e contagem de profissionais.
+      operationId: searchServices
+      parameters:
+        - name: category
+          in: query
+          description: Categoria do serviço (opcional)
+          required: false
+          schema:
+            type: string
+            enum: [BELEZA, SAUDE, SERVICOS, EDUCACAO, OUTROS]
+        - name: serviceType
+          in: query
+          description: Tipo do serviço (opcional)
+          required: false
+          schema:
+            type: string
+            enum: [CABELEIREIRO, BARBEIRO, ESTETICISTA, DESIGNER_SOBRANCELHA, MANICURE, PSICOLOGO, FISIOTERAPEUTA, NUTRICIONISTA, PERSONAL_TRAINER, ELETRICISTA, ENCANADOR, TECNICO_INFORMATICA, MONTADOR_MOVEIS, PEDREIRO, DIARISTA, AULA_PARTICULAR, PROFESSOR_IDIOMAS, REFORCO_ESCOLAR, MENTOR, OUTROS]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListServiceSearchResponse'
+
+  /search/professionals:
+    get:
+      tags: [Busca]
+      summary: Buscar profissionais
+      description: Busca profissionais por serviço, categoria/tipo ou ambos. Calcula distância geográfica se coordenadas forem fornecidas.
+      operationId: searchProfessionals
+      parameters:
+        - name: serviceId
+          in: query
+          description: ID do serviço (opcional)
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          description: Categoria do profissional (opcional)
+          required: false
+          schema:
+            type: string
+            enum: [BELEZA, SAUDE, SERVICOS, EDUCACAO, OUTROS]
+        - name: serviceType
+          in: query
+          description: Tipo de serviço do profissional (opcional)
+          required: false
+          schema:
+            type: string
+            enum: [CABELEIREIRO, BARBEIRO, ESTETICISTA, DESIGNER_SOBRANCELHA, MANICURE, PSICOLOGO, FISIOTERAPEUTA, NUTRICIONISTA, PERSONAL_TRAINER, ELETRICISTA, ENCANADOR, TECNICO_INFORMATICA, MONTADOR_MOVEIS, PEDREIRO, DIARISTA, AULA_PARTICULAR, PROFESSOR_IDIOMAS, REFORCO_ESCOLAR, MENTOR, OUTROS]
+        - name: latitude
+          in: query
+          description: Latitude para cálculo de distância (opcional)
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: longitude
+          in: query
+          description: Longitude para cálculo de distância (opcional)
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: maxDistanceKm
+          in: query
+          description: Distância máxima em km (opcional, requer coordenadas)
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: sortBy
+          in: query
+          description: "Ordenação: 'distance' ou 'rating' (padrão: distance se coordenadas fornecidas)"
+          required: false
+          schema:
+            type: string
+            default: distance
+        - name: page
+          in: query
+          description: "Número da página (padrão: 0)"
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: "Tamanho da página (padrão: 20)"
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponsePageProfessionalSearchResponse'
+
+  # ==================== PROFESSIONALS ====================
+  /professionals/{id}:
+    get:
+      tags: [Profissionais]
+      summary: Obter detalhes do profissional
+      description: Retorna informações completas do profissional incluindo serviços, avaliações e distância (se coordenadas fornecidas)
+      operationId: getProfessional
+      parameters:
+        - name: id
+          in: path
+          description: ID do profissional
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: latitude
+          in: query
+          description: Latitude para cálculo de distância (opcional)
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: longitude
+          in: query
+          description: Longitude para cálculo de distância (opcional)
+          required: false
+          schema:
+            type: number
+            format: double
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProfessionalDetailResponse'
+
+  /professionals/me/services:
+    get:
+      tags: [Profissionais]
+      summary: Listar serviços do profissional autenticado
+      description: Retorna todos os serviços ativos do profissional autenticado
+      operationId: getMyServices
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListServiceResponse'
+
+    post:
+      tags: [Profissionais]
+      summary: Criar novo serviço
+      description: Cria um novo serviço para o profissional autenticado
+      operationId: createService
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseServiceResponse'
+
+  /professionals/me/services/{serviceId}:
+    put:
+      tags: [Profissionais]
+      summary: Atualizar serviço
+      description: Atualiza um serviço do profissional autenticado
+      operationId: updateService
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: serviceId
+          in: path
+          description: ID do serviço
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateServiceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseServiceResponse'
+
+    delete:
+      tags: [Profissionais]
+      summary: Deletar serviço
+      description: Deleta (desativa) um serviço do profissional autenticado. Não permite deletar se houver agendamentos ativos.
+      operationId: deleteService
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: serviceId
+          in: path
+          description: ID do serviço
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseVoid'
+
+  # ==================== APPOINTMENTS ====================
+  /appointments:
+    post:
+      tags: [Agendamentos]
+      summary: Criar novo agendamento
+      description: Cria um novo agendamento para o cliente autenticado
+      operationId: createAppointment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentResponse'
+
+  /appointments/{id}:
+    get:
+      tags: [Agendamentos]
+      summary: Buscar agendamento por ID
+      description: Retorna os detalhes de um agendamento específico do cliente autenticado
+      operationId: getAppointmentById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do agendamento
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAppointmentResponse'
+
+    delete:
+      tags: [Agendamentos]
+      summary: Cancelar agendamento
+      description: Cancela um agendamento do cliente autenticado (apenas se status for PENDING)
+      operationId: cancelAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do agendamento
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /appointments/client:
+    get:
+      tags: [Agendamentos]
+      summary: Listar agendamentos do cliente
+      description: Lista todos os agendamentos do cliente autenticado, opcionalmente filtrado por status
+      operationId: getAppointmentsByClient
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Status do agendamento
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListAppointmentResponse'
+
+  /appointments/professional:
+    get:
+      tags: [Agendamentos]
+      summary: Listar agendamentos do profissional
+      description: Lista todos os agendamentos do profissional autenticado, opcionalmente filtrado por status. Inclui distância até o cliente.
+      operationId: getAppointmentsByProfessional
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Status do agendamento
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListAppointmentProfessionalResponse'
+
+  /appointments/{id}/accept:
+    put:
+      tags: [Agendamentos]
+      summary: Aceitar agendamento
+      description: Aceita um agendamento pendente do profissional autenticado
+      operationId: acceptAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do agendamento
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /appointments/{id}/reject:
+    put:
+      tags: [Agendamentos]
+      summary: Rejeitar agendamento
+      description: Rejeita um agendamento pendente do profissional autenticado
+      operationId: rejectAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do agendamento
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /appointments/{id}/complete:
+    put:
+      tags: [Agendamentos]
+      summary: Completar agendamento
+      description: Marca um agendamento aceito como completado pelo profissional autenticado
+      operationId: completeAppointment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID do agendamento
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  # ==================== REVIEWS ====================
+  /reviews:
+    post:
+      tags: [Avaliações]
+      summary: Criar avaliação
+      description: Cria uma nova avaliação para um agendamento completado
+      operationId: createReview
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReviewResponse'
+
+  /reviews/professionals/{professionalId}:
+    get:
+      tags: [Avaliações]
+      summary: Listar avaliações de um profissional
+      description: Lista todas as avaliações de um profissional com paginação. Endpoint público.
+      operationId: getReviewsByProfessional
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: professionalId
+          in: path
+          description: ID do profissional
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Número da página (começa em 1)
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          description: Tamanho da página
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReviewListResponse'
+
+  /reviews/client/me:
+    get:
+      tags: [Avaliações]
+      summary: Listar minhas avaliações
+      description: Lista todas as avaliações feitas pelo cliente autenticado
+      operationId: getMyReviews
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListReviewResponse'
+
+  # ==================== DASHBOARD ====================
+  /dashboard/client/stats:
+    get:
+      tags: [Dashboard]
+      summary: Dashboard do cliente
+      description: "Retorna estatísticas do cliente autenticado: próximos agendamentos, completados, categoria favorita, etc."
+      operationId: getClientDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseClientDashboardResponse'
+
+  /dashboard/professional/stats:
+    get:
+      tags: [Dashboard]
+      summary: Dashboard do profissional
+      description: "Retorna estatísticas do profissional autenticado: agendamentos de hoje, pendentes, média de avaliações, receita do mês, etc."
+      operationId: getProfessionalDashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseProfessionalDashboardResponse'
+
+  # ==================== NOTIFICATIONS ====================
+  /notifications:
+    get:
+      tags: [Notificações]
+      summary: Listar notificações
+      description: Lista todas as notificações do usuário autenticado, opcionalmente filtrado por não lidas
+      operationId: getNotifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: unreadOnly
+          in: query
+          description: Filtrar apenas notificações não lidas
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListNotificationResponse'
+
+  /notifications/{id}/read:
+    put:
+      tags: [Notificações]
+      summary: Marcar notificação como lida
+      description: Marca uma notificação específica como lida
+      operationId: markAsRead
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          description: ID da notificação
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /notifications/register-device:
+    post:
+      tags: [Notificações]
+      summary: Registrar device token
+      description: Registra um device token para receber notificações push
+      operationId: registerDevice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDeviceRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+  /notifications/device/{deviceToken}:
+    delete:
+      tags: [Notificações]
+      summary: Remover device token
+      description: Remove um device token do usuário autenticado
+      operationId: deleteDeviceToken
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deviceToken
+          in: path
+          description: Device token a ser removido
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseString'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ==================== REQUEST SCHEMAS ====================
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+
+    RegisterClientRequest:
+      type: object
+      required: [name, email, password, phone, address]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+        phone:
+          type: string
+          pattern: '\(?\d{2}\)?\s?\d{4,5}-?\d{4}'
+        address:
+          $ref: '#/components/schemas/AddressRequest'
+
+    RegisterProfessionalRequest:
+      type: object
+      required: [name, email, password, phone, address, category, serviceType, services]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+          maxLength: 100
+        phone:
+          type: string
+          pattern: '\(?\d{2}\)?\s?\d{4,5}-?\d{4}'
+        address:
+          $ref: '#/components/schemas/AddressRequest'
+        category:
+          type: string
+          enum: [BELEZA, SAUDE, SERVICOS, EDUCACAO, OUTROS]
+        serviceType:
+          type: string
+          enum: [CABELEIREIRO, BARBEIRO, ESTETICISTA, DESIGNER_SOBRANCELHA, MANICURE, PSICOLOGO, FISIOTERAPEUTA, NUTRICIONISTA, PERSONAL_TRAINER, ELETRICISTA, ENCANADOR, TECNICO_INFORMATICA, MONTADOR_MOVEIS, PEDREIRO, DIARISTA, AULA_PARTICULAR, PROFESSOR_IDIOMAS, REFORCO_ESCOLAR, MENTOR, OUTROS]
+        services:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/ServiceRequest'
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    AddressRequest:
+      type: object
+      required: [cep, street, number, neighborhood, city, state]
+      properties:
+        cep:
+          type: string
+          pattern: '\d{5}-?\d{3}'
+        street:
+          type: string
+        number:
+          type: string
+        complement:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          pattern: '[A-Z]{2}'
+
+    ServiceRequest:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        price:
+          type: number
+          minimum: 0.01
+
+    CepRequest:
+      type: object
+      required: [cep]
+      properties:
+        cep:
+          type: string
+          pattern: '\d{5}-?\d{3}'
+
+    AddressToCoordsRequest:
+      type: object
+      required: [street, number, city, state, cep]
+      properties:
+        street:
+          type: string
+        number:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+          pattern: '[A-Z]{2}'
+        cep:
+          type: string
+          pattern: '\d{5}-?\d{3}'
+
+    UpdateUserRequest:
+      type: object
+      required: [name, email, phone]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        email:
+          type: string
+          maxLength: 100
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$|^\(?[1-9]{2}\)? ?9?\d{4}-?\d{4}$'
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 100
+        confirmPassword:
+          type: string
+
+    CreateServiceRequest:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        price:
+          type: number
+          minimum: 0.01
+
+    UpdateServiceRequest:
+      type: object
+      required: [name, price]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 150
+        price:
+          type: number
+          minimum: 0.01
+
+    CreateAppointmentRequest:
+      type: object
+      required: [professionalId, serviceId, date, time]
+      properties:
+        professionalId:
+          type: string
+          format: uuid
+        serviceId:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+          pattern: '\d{2}:\d{2}'
+        notes:
+          type: string
+          maxLength: 500
+
+    CreateReviewRequest:
+      type: object
+      required: [appointmentId, rating]
+      properties:
+        appointmentId:
+          type: string
+          format: uuid
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+          maxLength: 1000
+
+    RegisterDeviceRequest:
+      type: object
+      required: [deviceToken, platform]
+      properties:
+        deviceToken:
+          type: string
+        platform:
+          type: string
+          enum: [ANDROID, IOS]
+
+    # ==================== RESPONSE SCHEMAS ====================
+    ApiResponseString:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiResponseVoid:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiResponseAuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AuthResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    ApiResponseUserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/UserResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        photo:
+          type: string
+        userType:
+          type: string
+          enum: [CLIENT, PROFESSIONAL]
+
+    ApiResponseAddressResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AddressResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    AddressResponse:
+      type: object
+      properties:
+        cep:
+          type: string
+        street:
+          type: string
+        neighborhood:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+
+    ApiResponseCoordinatesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/CoordinatesResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    CoordinatesResponse:
+      type: object
+      properties:
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    ApiResponseServiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ServiceResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ServiceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        price:
+          type: number
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseListServiceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiResponseListServiceSearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceSearchResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ServiceSearchResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        category:
+          type: string
+        serviceType:
+          type: string
+        minPrice:
+          type: number
+        maxPrice:
+          type: number
+        professionalCount:
+          type: integer
+
+    ApiResponsePageProfessionalSearchResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/PageProfessionalSearchResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    PageProfessionalSearchResponse:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProfessionalSearchResponse'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    ProfessionalSearchResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        photo:
+          type: string
+        category:
+          type: string
+        serviceType:
+          type: string
+        rating:
+          type: number
+        totalReviews:
+          type: integer
+        distanceKm:
+          type: number
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceResponse'
+
+    ApiResponseProfessionalDetailResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProfessionalDetailResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ProfessionalDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        photo:
+          type: string
+        category:
+          type: string
+        serviceType:
+          type: string
+        rating:
+          type: number
+        totalReviews:
+          type: integer
+        distanceKm:
+          type: number
+        address:
+          $ref: '#/components/schemas/AddressResponse'
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceResponse'
+        recentReviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewResponse'
+
+    ApiResponseAppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AppointmentResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    AppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        professional:
+          $ref: '#/components/schemas/ProfessionalSummary'
+        service:
+          $ref: '#/components/schemas/ServiceResponse'
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED]
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProfessionalSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        photo:
+          type: string
+        phone:
+          type: string
+
+    ApiResponseListAppointmentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiResponseListAppointmentProfessionalResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentProfessionalResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    AppointmentProfessionalResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        client:
+          $ref: '#/components/schemas/ClientSummary'
+        service:
+          $ref: '#/components/schemas/ServiceResponse'
+        date:
+          type: string
+          format: date
+        time:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED, COMPLETED, CANCELLED]
+        notes:
+          type: string
+        distanceKm:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    ClientSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        photo:
+          type: string
+        phone:
+          type: string
+
+    ApiResponseReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ReviewResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ReviewResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+          format: uuid
+        clientName:
+          type: string
+        rating:
+          type: integer
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiResponseListReviewResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ApiResponseReviewListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ReviewListResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ReviewListResponse:
+      type: object
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReviewResponse'
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        page:
+          type: integer
+        size:
+          type: integer
+
+    ApiResponseClientDashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ClientDashboardResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ClientDashboardResponse:
+      type: object
+      properties:
+        upcomingAppointments:
+          type: integer
+        completedAppointments:
+          type: integer
+        favoriteCategory:
+          type: string
+        nextAppointment:
+          $ref: '#/components/schemas/AppointmentResponse'
+
+    ApiResponseProfessionalDashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProfessionalDashboardResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    ProfessionalDashboardResponse:
+      type: object
+      properties:
+        todayAppointments:
+          type: integer
+        pendingAppointments:
+          type: integer
+        completedThisMonth:
+          type: integer
+        averageRating:
+          type: number
+        totalReviews:
+          type: integer
+        monthlyRevenue:
+          type: number
+        upcomingAppointments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentProfessionalResponse'
+
+    ApiResponseListNotificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        timestamp:
+          type: string
+          format: date-time
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+        read:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
