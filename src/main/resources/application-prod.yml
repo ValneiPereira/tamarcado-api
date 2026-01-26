@@ -20,10 +20,9 @@ cors:
 geocoding:
   api:
     enabled: true
-    provider: google
-    google:
-      api-key: ${GOOGLE_MAPS_API_KEY}
-      base-url: https://maps.googleapis.com/maps/api
+    provider: nominatim
+    nominatim:
+      base-url: https://nominatim.openstreetmap.org
 
 rate-limit:
   auth:

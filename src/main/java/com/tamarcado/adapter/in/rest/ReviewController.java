@@ -1,79 +1,54 @@
 package com.tamarcado.adapter.in.rest;
 
+import com.tamarcado.adapter.in.rest.contract.ReviewControllerApi;
 import com.tamarcado.application.service.ReviewService;
-import com.tamarcado.shared.constant.ApiConstants;
 import com.tamarcado.shared.dto.request.CreateReviewRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
 import com.tamarcado.shared.dto.response.ReviewListResponse;
 import com.tamarcado.shared.dto.response.ReviewResponse;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping(ApiConstants.REVIEWS_PATH)
 @RequiredArgsConstructor
-@Tag(name = "Avaliações", description = "Endpoints para gerenciamento de avaliações")
-@SecurityRequirement(name = "bearerAuth")
-public class ReviewController {
+public class ReviewController implements ReviewControllerApi {
 
-    private final ReviewService reviewService;
+        private final ReviewService reviewService;
 
-    @PostMapping
-    @Operation(summary = "Criar avaliação",
-               description = "Cria uma nova avaliação para um agendamento completado")
-    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
-            @Valid @RequestBody CreateReviewRequest request
-    ) {
-        log.debug("Criando avaliação para agendamento {}", request.appointmentId());
+        @Override
+        public ResponseEntity<ApiResponse<ReviewResponse>> createReview(CreateReviewRequest request) {
 
-        ReviewResponse review = reviewService.createReview(request);
+                log.debug("Criando avaliação para agendamento {}", request.appointmentId());
+                var review = reviewService.createReview(request);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(review, "Avaliação criada com sucesso")
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(review, "Avaliação criada com sucesso"));
+        }
 
-    @GetMapping("/professionals/{professionalId}")
-    @Operation(summary = "Listar avaliações de um profissional",
-               description = "Lista todas as avaliações de um profissional com paginação. Endpoint público.")
-    public ResponseEntity<ApiResponse<ReviewListResponse>> getReviewsByProfessional(
-            @Parameter(description = "ID do profissional")
-            @PathVariable UUID professionalId,
-            @Parameter(description = "Número da página (começa em 1)")
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @Parameter(description = "Tamanho da página")
-            @RequestParam(required = false, defaultValue = "10") Integer pageSize
-    ) {
-        log.debug("Listando avaliações do profissional {} com paginação", professionalId);
+        @Override
+        public ResponseEntity<ApiResponse<ReviewListResponse>> getReviewsByProfessional(UUID professionalId,
+                        Integer page, Integer pageSize) {
 
-        ReviewListResponse reviews = reviewService.getReviewsByProfessional(professionalId, page, pageSize);
+                log.debug("Listando avaliações do profissional {} com paginação", professionalId);
+                var reviews = reviewService.getReviewsByProfessional(professionalId, page, pageSize);
 
-        return ResponseEntity.ok(
-                ApiResponse.success(reviews, "Avaliações encontradas com sucesso")
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(reviews, "Avaliações encontradas com sucesso"));
+        }
 
-    @GetMapping("/client/me")
-    @Operation(summary = "Listar minhas avaliações",
-               description = "Lista todas as avaliações feitas pelo cliente autenticado")
-    public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
-        log.debug("Listando avaliações do cliente autenticado");
+        @Override
+        public ResponseEntity<ApiResponse<List<ReviewResponse>>> getMyReviews() {
 
-        List<ReviewResponse> reviews = reviewService.getReviewsByClient();
+                log.debug("Listando avaliações do cliente autenticado");
+                var reviews = reviewService.getReviewsByClient();
 
-        return ResponseEntity.ok(
-                ApiResponse.success(reviews, "Avaliações encontradas com sucesso")
-        );
-    }
+                return ResponseEntity.ok(
+                                ApiResponse.success(reviews, "Avaliações encontradas com sucesso"));
+        }
 }

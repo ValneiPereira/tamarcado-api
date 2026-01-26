@@ -13,7 +13,7 @@ public interface ProfessionalMapper {
     @Mapping(target = "email", source = "user.email")
     @Mapping(target = "phone", source = "user.phone")
     @Mapping(target = "photo", source = "user.photo")
-    @Mapping(target = "address", source = "user.address")
+    @Mapping(target = "address", source = "user.address", qualifiedByName = "addressToResponse")
     @Mapping(target = "distanceKm", ignore = true)
     @Mapping(target = "services", ignore = true)
     @Mapping(target = "reviews", ignore = true)

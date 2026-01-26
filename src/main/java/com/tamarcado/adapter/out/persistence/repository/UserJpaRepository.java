@@ -2,6 +2,7 @@ package com.tamarcado.adapter.out.persistence.repository;
 
 import com.tamarcado.domain.model.user.User;
 import com.tamarcado.domain.model.user.UserType;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Repository
 public interface UserJpaRepository extends JpaRepository<User, UUID> {
 
+    @EntityGraph(attributePaths = {"address"})
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);

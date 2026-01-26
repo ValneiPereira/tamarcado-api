@@ -1,5 +1,6 @@
 package com.tamarcado.shared.dto.request;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -18,5 +19,8 @@ public record UpdateUserRequest(
         @NotBlank(message = "Telefone é obrigatório")
         @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$|^\\(?[1-9]{2}\\)? ?9?\\d{4}-?\\d{4}$", 
                 message = "Telefone inválido")
-        String phone
+        String phone,
+
+        @Valid
+        AddressRequest address
 ) {}

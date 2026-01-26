@@ -17,24 +17,23 @@ public class GeocodingService {
 
     private final GeocodingPort geocodingPort;
 
-    @Cacheable(value = "geocoding:coordinates", key = "#request.street() + '|' + #request.number() + '|' + #request.city() + '|' + #request.state() + '|' + #request.cep()")
+    @Cacheable(value = "geocoding:coordinates", key = "#request.city().toLowerCase().trim() + '|' + #request.state().toUpperCase().trim()")
     public CoordinatesResponse addressToCoordinates(AddressToCoordsRequest request) {
-        log.info("Convertendo endereço para coordenadas: {}, {}, {}, {}, {}", 
-                request.street(), request.number(), request.city(), request.state(), request.cep());
+        log.info("Convertendo endereço para coordenadas: {}, {}, {}, {}, {}",
+            request.street(), request.number(), request.city(), request.state(), request.cep());
 
         return geocodingPort.addressToCoordinates(
-                request.street(),
-                request.number(),
-                request.city(),
-                request.state(),
-                request.cep()
-        );
+            request.street(),
+            request.number(),
+            request.city(),
+            request.state(),
+            request.cep());
     }
 
     @Cacheable(value = "geocoding:address", key = "#request.cep()")
     public AddressResponse cepToAddress(CepRequest request) {
-        log.info("Buscando endereço por CEP: {}", request.cep());
 
+        log.info("Buscando endereço por CEP: {}", request.cep());
         return geocodingPort.cepToAddress(request.cep());
     }
 }
