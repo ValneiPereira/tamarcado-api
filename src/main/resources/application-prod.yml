@@ -1,22 +1,73 @@
 spring:
+  # Database Configuration (AWS RDS PostgreSQL)
+  datasource:
+    url: jdbc:postgresql://${DATABASE_HOST}:${DATABASE_PORT:5432}/${DATABASE_NAME:tamarcado}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DATABASE_POOL_SIZE:10}
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # Redis Configuration
+  # Supports both:
+  #   - External Redis (Upstash, Redis Cloud): use REDIS_URL=rediss://user:pass@host:port
+  #   - AWS ElastiCache: use REDIS_HOST + REDIS_PORT + REDIS_PASSWORD
+  data:
+    redis:
+      url: ${REDIS_URL:}  # Use this for Upstash/Redis Cloud (rediss:// for TLS)
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      ssl:
+        enabled: ${REDIS_SSL_ENABLED:false}
+      timeout: 5000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 2
+
   jpa:
     show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
   flyway:
     enabled: true
+    validate-on-migrate: true
 
+# Graceful shutdown for zero-downtime deployments
+server:
+  shutdown: graceful
+
+spring.lifecycle:
+  timeout-per-shutdown-phase: 30s
+
+# Logging - JSON format for CloudWatch
 logging:
   level:
     root: INFO
     com.tamarcado: INFO
+  pattern:
+    console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%p","logger":"%logger{36}","message":"%m","thread":"%t"}%n'
 
+# JWT Configuration
 jwt:
-  secret: ${JWT_SECRET} # Variável de ambiente obrigatória
+  secret: ${JWT_SECRET}
   expiration: 3600000 # 1 hora
   refresh-expiration: 604800000 # 7 dias
 
+# CORS Configuration
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:https://app.tamarcado.com.br}
 
+# Geocoding Configuration
 geocoding:
   api:
     enabled: true
@@ -24,13 +75,31 @@ geocoding:
     nominatim:
       base-url: https://nominatim.openstreetmap.org
 
+# Rate Limiting
 rate-limit:
   auth:
     requests: 5
-    window: 60 # segundos
+    window: 60
   search:
     requests: 60
     window: 60
   general:
     requests: 100
     window: 60
+
+# Actuator - Health checks for ALB/ECS
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
