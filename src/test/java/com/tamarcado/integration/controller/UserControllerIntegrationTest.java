@@ -39,25 +39,25 @@ class UserControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker
     @Test
     void shouldGetCurrentUser() {
         given()
-                .header("Authorization", clientToken)
-        .when()
-                .get("/users/me")
-        .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("data.id", notNullValue())
-                .body("data.email", equalTo(client.getEmail()))
-                .body("data.name", equalTo(client.getName()))
-                .body("data.userType", equalTo("CLIENT"));
+            .header("Authorization", clientToken)
+            .when()
+            .get("/users/me")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data.id", notNullValue())
+            .body("data.email", equalTo(client.getEmail()))
+            .body("data.name", equalTo(client.getName()))
+            .body("data.userType", equalTo("CLIENT"));
     }
 
     @Test
     void shouldFailGetCurrentUserWithoutAuth() {
         given()
-        .when()
-                .get("/users/me")
-        .then()
-                .statusCode(401);
+            .when()
+            .get("/users/me")
+            .then()
+            .statusCode(401);
     }
 
     @Test
@@ -68,34 +68,33 @@ class UserControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker
         request.put("phone", "11999999999");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .put("/users/me")
-        .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("data.name", equalTo("Nome Atualizado"))
-                .body("data.email", equalTo("novoemail@test.com"));
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data.name", equalTo("Nome Atualizado"))
+            .body("data.email", equalTo("novoemail@test.com"));
     }
 
     @Test
     void shouldFailUpdateCurrentUserWithDuplicateEmail() {
-        // Primeiro atualiza o cliente atual
         Map<String, Object> request = new HashMap<>();
         request.put("name", "Nome Atualizado");
-        request.put("email", otherClient.getEmail()); // Email já usado por outro cliente
+        request.put("email", otherClient.getEmail());
         request.put("phone", "11999999999");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .put("/users/me")
-        .then()
-                .statusCode(400);
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me")
+            .then()
+            .statusCode(400);
     }
 
     @Test
@@ -106,15 +105,15 @@ class UserControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker
         request.put("confirmPassword", "novaSenha123");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .put("/users/me/password")
-        .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("data", equalTo("Senha alterada com sucesso"));
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me/password")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", equalTo("Senha alterada com sucesso"));
     }
 
     @Test
@@ -125,13 +124,13 @@ class UserControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker
         request.put("confirmPassword", "novaSenha123");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .put("/users/me/password")
-        .then()
-                .statusCode(400);
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me/password")
+            .then()
+            .statusCode(400);
     }
 
     @Test
@@ -142,55 +141,69 @@ class UserControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker
         request.put("confirmPassword", "senhaDiferente");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .put("/users/me/password")
-        .then()
-                .statusCode(400);
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me/password")
+            .then()
+            .statusCode(400);
     }
 
     @Test
     void shouldDeleteCurrentUser() {
         given()
-                .header("Authorization", clientToken)
-        .when()
-                .delete("/users/me")
-        .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("data", equalTo("Conta desativada com sucesso"));
+            .header("Authorization", clientToken)
+            .when()
+            .delete("/users/me")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", equalTo("Conta desativada com sucesso"));
 
-        // Verificar que o usuário não consegue mais acessar após desativação
         given()
-                .header("Authorization", clientToken)
-        .when()
-                .get("/users/me")
-        .then()
-                .statusCode(401); // Token pode estar inválido ou usuário inativo
+            .header("Authorization", clientToken)
+            .when()
+            .get("/users/me")
+            .then()
+            .statusCode(401);
     }
 
     @Test
     void shouldFailAccessOtherUserProfile() {
-        // Tentar acessar perfil de outro usuário usando token de outro cliente
-        // Como o endpoint /users/me sempre retorna o usuário autenticado,
-        // este teste valida que cada token só acessa seu próprio perfil
-        given()
-                .header("Authorization", clientToken)
-        .when()
-                .get("/users/me")
-        .then()
-                .statusCode(200)
-                .body("data.id", equalTo(client.getId().toString()));
 
-        // Outro cliente acessa seu próprio perfil
         given()
-                .header("Authorization", otherClientToken)
-        .when()
-                .get("/users/me")
-        .then()
-                .statusCode(200)
-                .body("data.id", equalTo(otherClient.getId().toString()));
+            .header("Authorization", clientToken)
+            .when()
+            .get("/users/me")
+            .then()
+            .statusCode(200)
+            .body("data.id", equalTo(client.getId().toString()));
+
+        given()
+            .header("Authorization", otherClientToken)
+            .when()
+            .get("/users/me")
+            .then()
+            .statusCode(200)
+            .body("data.id", equalTo(otherClient.getId().toString()));
+    }
+
+    @Test
+    void shouldUpdatePhoto() {
+        Map<String, Object> request = new HashMap<>();
+        String photoUrl = "https://example.com/photo.jpg";
+        request.put("photoUrl", photoUrl);
+
+        given()
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .put("/users/me/photo")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data.photo", equalTo(photoUrl));
     }
 }
