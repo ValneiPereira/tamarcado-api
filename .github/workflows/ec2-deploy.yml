@@ -1,0 +1,99 @@
+# Deploy to EC2 via SSH (Free Tier Compatible)
+# Use this for free tier deployment instead of ECS Fargate
+#
+# Required GitHub Secrets:
+#   EC2_HOST          - Public IP or DNS of EC2 instance
+#   EC2_USERNAME      - Usually 'ec2-user' for Amazon Linux
+#   EC2_SSH_KEY       - Private key content (the .pem file content)
+#   DOCKER_USERNAME   - Docker Hub username (optional, for private images)
+#   DOCKER_PASSWORD   - Docker Hub password (optional, for private images)
+
+name: Deploy to EC2 (Free Tier)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch: # Manual trigger
+
+env:
+  IMAGE_NAME: tamarcado-api
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        run: mvn verify -B
+
+  deploy:
+    name: Deploy to EC2
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2-key.pem
+          chmod 600 ~/.ssh/ec2-key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/ec2-key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
+            set -e
+
+            echo "=== Updating repository ==="
+            cd ~/tamarcado-api || git clone https://github.com/${{ github.repository }}.git ~/tamarcado-api
+            cd ~/tamarcado-api
+            git fetch origin
+            git reset --hard origin/${{ github.ref_name }}
+
+            echo "=== Building Docker image ==="
+            docker build -t tamarcado-api:latest .
+
+            echo "=== Stopping old container ==="
+            docker stop tamarcado-api 2>/dev/null || true
+            docker rm tamarcado-api 2>/dev/null || true
+
+            echo "=== Starting new container ==="
+            docker run -d \
+              --name tamarcado-api \
+              --env-file ~/.env \
+              -p 8080:8080 \
+              --restart unless-stopped \
+              tamarcado-api:latest
+
+            echo "=== Waiting for health check ==="
+            sleep 30
+
+            echo "=== Checking health ==="
+            curl -f http://localhost:8080/api/v1/actuator/health || exit 1
+
+            echo "=== Cleaning old images ==="
+            docker image prune -f
+
+            echo "=== Deploy completed! ==="
+          ENDSSH
+
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Deployment to EC2 Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Host:** \`${{ secrets.EC2_HOST }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
