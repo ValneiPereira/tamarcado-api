@@ -35,6 +35,7 @@ class AppointmentControllerIntegrationTest extends AbstractIntegrationTestWithou
     private User professional;
     private ServiceOffering service;
     private String clientToken;
+    private String professionalToken;
 
     @BeforeEach
     void setUp() {
@@ -47,61 +48,169 @@ class AppointmentControllerIntegrationTest extends AbstractIntegrationTestWithou
         String professionalName = (String) professionalSetup.get("name");
         User client = testUtils.createTestClient("client-" + unique + "@test.com", clientName);
         clientToken = testUtils.getAuthorizationHeader(testUtils.generateToken(client));
-        professional = testUtils.createTestProfessional("professional-" + unique + "@test.com", professionalName);
+        professional = testUtils.createTestProfessional("professional-" + unique + "@test.com",
+            professionalName);
+        professionalToken = testUtils.getAuthorizationHeader(testUtils.generateToken(professional));
 
         Professional prof = professionalRepository.findById(professional.getId()).orElseThrow();
         String serviceName = (String) serviceSetup.get("name");
         BigDecimal price = BigDecimal.valueOf(((Number) serviceSetup.get("price")).doubleValue());
         service = ServiceOffering.builder()
-                .professional(prof)
-                .name(serviceName)
-                .price(price)
-                .active(true)
-                .build();
+            .professional(prof)
+            .name(serviceName)
+            .price(price)
+            .active(true)
+            .build();
         service = serviceOfferingRepository.save(service);
     }
 
     @Test
     void shouldCreateAppointment() {
         Map<String, Object> request = buildCreateAppointmentRequest(
-                professional.getId(), service.getId(), "default");
+            professional.getId(), service.getId(), "default");
 
         given()
-                .header("Authorization", clientToken)
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .post("/appointments")
-        .then()
-                .statusCode(201)
-                .body("success", equalTo(true))
-                .body("data.id", notNullValue())
-                .body("data.professionalId", equalTo(professional.getId().toString()));
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/appointments")
+            .then()
+            .statusCode(201)
+            .body("success", equalTo(true))
+            .body("data.id", notNullValue())
+            .body("data.professionalId", equalTo(professional.getId().toString()));
     }
 
     @Test
     void shouldListClientAppointments() {
         given()
-                .header("Authorization", clientToken)
-        .when()
-                .get("/appointments/client")
-        .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("data", is(notNullValue()));
+            .header("Authorization", clientToken)
+            .when()
+            .get("/appointments/client")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", is(notNullValue()));
     }
 
     @Test
     void shouldFailCreateAppointmentWithoutAuth() {
         Map<String, Object> request = buildCreateAppointmentRequest(
-                professional.getId(), service.getId(), "noNotes");
+            professional.getId(), service.getId(), "noNotes");
 
         given()
-                .contentType(ContentType.JSON)
-                .body(request)
-        .when()
-                .post("/appointments")
-        .then()
-                .statusCode(401);
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/appointments")
+            .then()
+            .statusCode(401);
+    }
+
+    @Test
+    void shouldGetAppointmentById() {
+        String appointmentId = createAppointment();
+
+        given()
+            .header("Authorization", clientToken)
+            .when()
+            .get("/appointments/{id}", appointmentId)
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data.id", equalTo(appointmentId));
+    }
+
+    @Test
+    void shouldCancelAppointment() {
+        String appointmentId = createAppointment();
+
+        given()
+            .header("Authorization", clientToken)
+            .when()
+            .delete("/appointments/{id}", appointmentId)
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", containsString("cancelado"));
+    }
+
+    @Test
+    void shouldListProfessionalAppointments() {
+        createAppointment();
+
+        given()
+            .header("Authorization", professionalToken)
+            .when()
+            .get("/appointments/professional")
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", is(notNullValue()));
+    }
+
+    @Test
+    void shouldAcceptAppointment() {
+        String appointmentId = createAppointment();
+
+        given()
+            .header("Authorization", professionalToken)
+            .when()
+            .put("/appointments/{id}/accept", appointmentId)
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", containsString("aceito"));
+    }
+
+    @Test
+    void shouldRejectAppointment() {
+        String appointmentId = createAppointment();
+
+        given()
+            .header("Authorization", professionalToken)
+            .when()
+            .put("/appointments/{id}/reject", appointmentId)
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", containsString("rejeitado"));
+    }
+
+    @Test
+    void shouldCompleteAppointment() {
+        String appointmentId = createAppointment();
+
+        // Profissional aceita primeiro
+        given()
+            .header("Authorization", professionalToken)
+            .put("/appointments/{id}/accept", appointmentId);
+
+        // Depois completa
+        given()
+            .header("Authorization", professionalToken)
+            .when()
+            .put("/appointments/{id}/complete", appointmentId)
+            .then()
+            .statusCode(200)
+            .body("success", equalTo(true))
+            .body("data", containsString("completado"));
+    }
+
+    private String createAppointment() {
+        Map<String, Object> request = buildCreateAppointmentRequest(
+            professional.getId(), service.getId(), "default");
+
+        return given()
+            .header("Authorization", clientToken)
+            .contentType(ContentType.JSON)
+            .body(request)
+            .when()
+            .post("/appointments")
+            .then()
+            .statusCode(201)
+            .extract()
+            .path("data.id");
     }
 }

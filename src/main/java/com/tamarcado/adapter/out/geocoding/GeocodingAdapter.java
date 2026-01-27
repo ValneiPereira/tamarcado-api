@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.core.ParameterizedTypeReference;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
@@ -19,6 +20,7 @@ public class GeocodingAdapter implements GeocodingPort {
     public static final String COUNTRY_CODES_BR = "/search?format=json&q={q}&limit=1&countrycodes=br";
     public static final String USER_AGENT = "User-Agent";
     public static final String TAMARCADO_IA_BR = "tamarcado-api/1.0 (contato@tamarcado.ia.br)";
+    private static final Pattern NON_DIGITS = Pattern.compile("\\D");
     private final RestClient restClient;
 
     @Value("${geocoding.api.viacep.base-url}")
@@ -42,11 +44,12 @@ public class GeocodingAdapter implements GeocodingPort {
     public AddressResponse cepToAddress(String cep) {
 
         log.debug("Buscando endereço por CEP: {}", cep);
-        var cleanCep = cep.replaceAll("[^0-9]", "");
+        var cleanCep = cep != null ? NON_DIGITS.matcher(cep).replaceAll("") : "";
 
         try {
 
-            var baseUrl = viaCepBaseUrl.endsWith("/") ? viaCepBaseUrl.substring(0, viaCepBaseUrl.length() - 1) : viaCepBaseUrl;
+            var baseUrl = viaCepBaseUrl.endsWith("/") ? viaCepBaseUrl.substring(0, viaCepBaseUrl.length() - 1)
+                    : viaCepBaseUrl;
             var uri = String.format("%s/%s/json/", baseUrl, cleanCep);
 
             log.debug("Buscando CEP na URL: {}", uri);
@@ -106,7 +109,8 @@ public class GeocodingAdapter implements GeocodingPort {
 
             var firstResult = results.get(0);
 
-            log.info("Nominatim encontrou coordenadas para {}: lat={}, lon={}", query, firstResult.lat(), firstResult.lon());
+            log.info("Nominatim encontrou coordenadas para {}: lat={}, lon={}", query, firstResult.lat(),
+                    firstResult.lon());
             return new CoordinatesResponse(
                     Double.parseDouble(firstResult.lat()),
                     Double.parseDouble(firstResult.lon()));
