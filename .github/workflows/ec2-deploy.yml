@@ -1,22 +1,17 @@
-# Deploy to EC2 via SSH (Free Tier Compatible)
-# Use this for free tier deployment instead of ECS Fargate
+# Deploy to EC2 via SSH + Docker Compose
+# Optimized for EC2 t4g.micro (ARM64, 1GB RAM, ~$6/month)
 #
 # Required GitHub Secrets:
-#   EC2_HOST          - Public IP or DNS of EC2 instance
+#   EC2_HOST          - Public IP or Elastic IP of EC2 instance
 #   EC2_USERNAME      - Usually 'ec2-user' for Amazon Linux
 #   EC2_SSH_KEY       - Private key content (the .pem file content)
-#   DOCKER_USERNAME   - Docker Hub username (optional, for private images)
-#   DOCKER_PASSWORD   - Docker Hub password (optional, for private images)
 
-name: Deploy to EC2 (Free Tier)
+name: Deploy to EC2
 
 on:
   push:
     branches: [main, master]
   workflow_dispatch: # Manual trigger
-
-env:
-  IMAGE_NAME: tamarcado-api
 
 jobs:
   test:
@@ -63,37 +58,44 @@ jobs:
             git fetch origin
             git reset --hard origin/${{ github.ref_name }}
 
-            echo "=== Building Docker image ==="
-            docker build -t tamarcado-api:latest .
+            echo "=== Building and deploying with Docker Compose ==="
+            docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build --remove-orphans
 
-            echo "=== Stopping old container ==="
-            docker stop tamarcado-api 2>/dev/null || true
-            docker rm tamarcado-api 2>/dev/null || true
-
-            echo "=== Starting new container ==="
-            docker run -d \
-              --name tamarcado-api \
-              --env-file ~/.env \
-              -p 8080:8080 \
-              --restart unless-stopped \
-              tamarcado-api:latest
-
-            echo "=== Waiting for health check ==="
-            sleep 30
+            echo "=== Waiting for API to start (Java needs time on 1GB RAM) ==="
+            sleep 90
 
             echo "=== Checking health ==="
-            curl -f http://localhost:8080/api/v1/actuator/health || exit 1
+            RETRIES=5
+            for i in $(seq 1 $RETRIES); do
+              if curl -sf http://localhost:8080/api/v1/actuator/health; then
+                echo ""
+                echo "=== Health check passed! ==="
+                break
+              fi
+              if [ $i -eq $RETRIES ]; then
+                echo "=== Health check failed after $RETRIES attempts ==="
+                echo "=== Container logs: ==="
+                docker logs --tail 50 tamarcado-api
+                exit 1
+              fi
+              echo "Attempt $i/$RETRIES failed, retrying in 15s..."
+              sleep 15
+            done
 
             echo "=== Cleaning old images ==="
             docker image prune -f
 
             echo "=== Deploy completed! ==="
+            echo "=== Memory usage: ==="
+            free -m
+            docker stats --no-stream
           ENDSSH
 
       - name: Deployment Summary
         run: |
-          echo "## 🚀 Deployment to EC2 Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "## Deployment to EC2 Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Host:** \`${{ secrets.EC2_HOST }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Architecture:** ARM64 (Graviton t4g.micro)" >> $GITHUB_STEP_SUMMARY
