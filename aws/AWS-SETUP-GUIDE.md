@@ -4,74 +4,79 @@ Este guia explica passo a passo como fazer deploy da API na AWS.
 
 ---
 
-## Arquitetura Atual: EC2 t4g.micro (~$6/mês)
+## Arquitetura Atual: AWS Free Tier ($0/mês)
 
-Estratégia de menor custo: API + PostgreSQL no mesmo EC2 via Docker Compose.
+EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis).
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│              EC2 t4g.micro (~$6/mês)                  │
-│         ARM Graviton | 2 vCPU | 1GB RAM              │
+│              EC2 t3.micro (FREE TIER)                 │
+│         2 vCPU | 1GB RAM | 750h/mês grátis           │
 │                                                       │
-│  ┌──────────────────┐    ┌──────────────────────┐    │
-│  │  Docker:         │    │  Docker:             │    │
-│  │  tamarcado-api   │───▶│  PostgreSQL 16       │    │
-│  │  Java 21 (400MB) │    │  (200MB)             │    │
-│  │  port 8080       │    │  Volume: EBS 8GB     │    │
-│  └──────────────────┘    └──────────────────────┘    │
-│         │                                             │
-│         │   1GB Swap (disco) para segurança           │
-└─────────┼─────────────────────────────────────────────┘
-          │
-          ▼
-┌──────────────────────┐
-│   Upstash Redis      │
-│   (Grátis p/ sempre) │
-└──────────────────────┘
+│  ┌──────────────────────────────────────────────┐    │
+│  │  Docker:                                      │    │
+│  │  tamarcado-api (Java 21)                      │    │
+│  │  ~700MB RAM disponível (só API, sem PG)       │    │
+│  │  port 8080                                    │    │
+│  └──────────────┬───────────────────────────────┘    │
+│                 │   1GB Swap (segurança)              │
+└─────────────────┼────────────────────────────────────┘
+                  │
+        ┌─────────┴─────────┐
+        │                   │
+        ▼                   ▼
+┌───────────────┐   ┌──────────────────┐
+│ RDS PostgreSQL│   │  Upstash Redis   │
+│ (FREE TIER)   │   │  (Grátis sempre) │
+│ db.t3.micro   │   └──────────────────┘
+│ 20GB storage  │
+└───────────────┘
 ```
 
-### Custos Reais (região sa-east-1 - São Paulo)
+### Custos (Free Tier - 12 meses)
 
-| Serviço | Configuração | Custo/mês |
-|---------|--------------|-----------|
-| **EC2 t4g.micro** | 2 vCPU ARM, 1GB RAM | ~$6.20 |
-| **EBS** | 8GB gp3 | ~$0.80 |
-| **Elastic IP** | Associado ao EC2 | $0 |
-| **Upstash Redis** | Free tier (10K cmd/dia) | $0 |
-| **PostgreSQL** | Docker no EC2 | $0 |
-| **Total** | | **~$7/mês** |
+| Serviço | Free Tier | Custo/mês |
+|---------|-----------|-----------|
+| **EC2 t3.micro** | 750h/mês | **$0** |
+| **RDS PostgreSQL** | 750h/mês, 20GB, db.t3.micro | **$0** |
+| **EBS** | 30GB gp2 | **$0** |
+| **Upstash Redis** | 10K cmd/dia (grátis sempre) | **$0** |
+| **Transferência** | 100GB/mês | **$0** |
+| **Total** | | **$0/mês** |
 
-### Distribuição de Memória (1GB)
+### Distribuição de Memória (1GB) - Mais Folga!
 
 | Componente | RAM | Observação |
 |------------|-----|------------|
 | Sistema + Docker | ~150MB | Amazon Linux 2023 |
-| PostgreSQL | ~200MB | shared_buffers=64MB, max_conn=20 |
-| Java API | ~400MB | MaxRAMPercentage=60%, G1GC |
+| Java API | ~700MB | MaxRAMPercentage=70%, G1GC |
 | Swap (disco) | 1GB | Segurança contra OOM |
+
+**Vantagem vs versão anterior:** Sem PostgreSQL local, a API Java tem ~700MB em vez de ~400MB.
 
 ---
 
 ## Opções de Deploy por Custo
 
-### Opção 1 (ATUAL): EC2 t4g.micro - ~$7/mês
-Portfólio e estudos. Tudo no mesmo EC2.
+### Opção 1 (ATUAL): Free Tier - $0/mês
+EC2 + RDS grátis por 12 meses. Portfólio e estudos.
 
-### Opção 2: EC2 t4g.small - ~$13/mês
-Mais folga de RAM (2GB). Quando tiver mais budget.
+### Opção 2: Pós Free Tier - EC2 t4g.micro - ~$7/mês
+API + PostgreSQL no mesmo EC2 via Docker Compose (sem RDS).
 
 ### Opção 3: ECS Fargate + RDS - ~$90/mês
 Arquitetura profissional. Quando tiver clientes pagando.
 
 ---
 
-## Dicas para Economizar
+## Dicas para Manter $0
 
-1. **Configure Budget Alerts**: AWS > Billing > Budgets > Create Budget ($10)
-2. **Pare EC2 quando não usar**: EC2 parado = $0 (só paga EBS ~$0.80)
-3. **Use apenas sa-east-1** (São Paulo)
-4. **Sem NAT Gateway, sem ALB, sem RDS**: Tudo no EC2
-5. **Upstash Redis**: Grátis para sempre (não use ElastiCache)
+1. **Configure Budget Alerts**: AWS > Billing > Budgets > Create Budget ($0 ou $1)
+2. **Use apenas sa-east-1** (São Paulo)
+3. **Sem NAT Gateway, sem ALB, sem ElastiCache**
+4. **Pare EC2/RDS quando não usar por muito tempo**
+5. **Monitore**: AWS > Billing > Free Tier (veja consumo)
+6. **RDS parado reinicia após 7 dias** automaticamente - fique atento!
 
 ---
 
@@ -437,9 +442,9 @@ aws ecs update-service \
 ---
 ---
 
-# DEPLOY: EC2 t4g.micro + Docker Compose (~$7/mês)
+# DEPLOY: AWS Free Tier ($0/mês)
 
-Tudo no mesmo EC2: API + PostgreSQL via Docker Compose. Sem RDS, sem ALB, sem NAT Gateway.
+EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 
 ---
 
@@ -457,16 +462,17 @@ Tudo no mesmo EC2: API + PostgreSQL via Docker Compose. Sem RDS, sem ALB, sem NA
 ## Passo 2: Configurar Alerta de Custos (PRIMEIRO!)
 
 1. Vá para **Billing** > **Budgets** > **Create budget**
-2. Escolha **Monthly cost budget**
-3. Budget amount: `$10`
-4. Configure email para alertas em 80% e 100%
+2. Escolha **Zero spend budget** (alerta se gastar qualquer coisa)
+3. Configure email para alertas
+4. Crie também um **Monthly cost budget** de $5 como segurança
 
 ---
 
-## Passo 3: Criar Security Group
+## Passo 3: Criar Security Groups
 
+### 3.1 Security Group para EC2
 1. **EC2** > **Security Groups** > **Create**
-2. Name: `tamarcado-sg`
+2. Name: `tamarcado-ec2-sg`
 3. Inbound rules:
 
 | Tipo | Porta | Origem | Descrição |
@@ -476,26 +482,56 @@ Tudo no mesmo EC2: API + PostgreSQL via Docker Compose. Sem RDS, sem ALB, sem NA
 | HTTPS | 443 | 0.0.0.0/0 | Web SSL (futuro) |
 | Custom TCP | 8080 | 0.0.0.0/0 | API Spring Boot |
 
+### 3.2 Security Group para RDS
+1. Name: `tamarcado-rds-sg`
+2. Inbound rules:
+
+| Tipo | Porta | Origem | Descrição |
+|------|-------|--------|-----------|
+| PostgreSQL | 5432 | tamarcado-ec2-sg | Acesso do EC2 ao banco |
+
 ---
 
-## Passo 4: Criar EC2 t4g.micro
+## Passo 4: Criar RDS PostgreSQL (Free Tier)
+
+1. Vá para **RDS** > **Create database**
+2. Configurações:
+   - **Engine:** PostgreSQL
+   - **Templates:** Free tier ✅ (IMPORTANTE!)
+   - **DB instance identifier:** tamarcado-db
+   - **Master username:** tamarcado
+   - **Master password:** (crie uma senha forte, ANOTE!)
+   - **DB instance class:** db.t3.micro
+   - **Storage:** 20 GB gp2, desmarque autoscaling
+   - **VPC:** Default VPC
+   - **Public access:** No
+   - **Security group:** tamarcado-rds-sg
+   - **Database name:** tamarcado
+   - **Backup:** Desmarque automated backups (economiza storage)
+3. **Create database**
+4. Aguarde ~5 min
+5. Anote o **Endpoint:** `tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com`
+
+---
+
+## Passo 5: Criar EC2 t3.micro (Free Tier)
 
 1. Vá para **EC2** > **Launch instance**
 2. Configurações:
    - **Name:** tamarcado-api
-   - **AMI:** Amazon Linux 2023 (ARM64)
-   - **Instance type:** t4g.micro
+   - **AMI:** Amazon Linux 2023 (x86_64) - Free tier eligible
+   - **Instance type:** t3.micro ✅ (Free tier)
    - **Key pair:** Create new → `tamarcado-key` → Download .pem
    - **Network:** Default VPC
    - **Auto-assign public IP:** Enable
-   - **Security group:** tamarcado-sg
-   - **Storage:** 8 GB gp3
+   - **Security group:** tamarcado-ec2-sg
+   - **Storage:** 20 GB gp2 (free tier até 30GB)
 3. **Launch instance**
 4. Anote o **Public IP**
 
 ---
 
-## Passo 5: Conectar no EC2
+## Passo 6: Conectar no EC2
 
 ### Windows (PowerShell):
 ```powershell
@@ -512,7 +548,7 @@ ssh -i ~/Downloads/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
 
 ---
 
-## Passo 6: Instalar Tudo com o Script de Setup
+## Passo 7: Instalar Tudo com o Script de Setup
 
 ```bash
 # Opção 1: Download e executar o script
@@ -551,7 +587,7 @@ Reconecte via SSH.
 
 ---
 
-## Passo 7: Clonar Repositório e Configurar
+## Passo 8: Clonar Repositório e Configurar
 
 ```bash
 # Clonar
@@ -563,22 +599,28 @@ cp .env.prod.example .env.prod
 nano .env.prod
 ```
 
-Preencha o `.env.prod`:
+Preencha o `.env.prod` com os dados do RDS:
 ```bash
-POSTGRES_DB=tamarcado
-POSTGRES_USER=tamarcado
-POSTGRES_PASSWORD=SUA_SENHA_FORTE_AQUI
+# RDS endpoint (do passo 4)
+DATABASE_HOST=tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com
+DATABASE_PORT=5432
+DATABASE_NAME=tamarcado
+DATABASE_USERNAME=tamarcado
+DATABASE_PASSWORD=SUA_SENHA_DO_RDS
 
+# Upstash (do passo 1)
 REDIS_URL=rediss://default:SUA_SENHA@SEU_HOST.upstash.io:6379
 
+# JWT (gere com: openssl rand -base64 48)
 JWT_SECRET=SUA_CHAVE_JWT_MINIMO_32_CARACTERES_AQUI
 
+# CORS
 CORS_ALLOWED_ORIGINS=*
 ```
 
 ---
 
-## Passo 8: Subir a Aplicação
+## Passo 9: Subir a Aplicação
 
 ```bash
 cd ~/tamarcado-api
@@ -592,7 +634,7 @@ docker logs -f tamarcado-api
 
 ---
 
-## Passo 9: Testar
+## Passo 10: Testar
 
 ```bash
 # Health check local
@@ -609,7 +651,7 @@ docker stats --no-stream
 
 ---
 
-## Passo 10: Configurar HTTPS (Opcional, Grátis)
+## Passo 11: Configurar HTTPS (Opcional, Grátis)
 
 Precisa de um domínio apontando para o IP do EC2.
 
@@ -642,7 +684,7 @@ sudo certbot --nginx -d SEU_DOMINIO.com.br
 
 ---
 
-## Passo 11: Configurar CI/CD no GitHub
+## Passo 12: Configurar CI/CD no GitHub
 
 Adicione estes secrets no repositório GitHub:
 
@@ -696,14 +738,17 @@ docker exec tamarcado-postgres pg_dump -U tamarcado tamarcado > backup_$(date +%
 cd ~/tamarcado-api
 docker-compose -f docker-compose.prod.yml --env-file .env.prod down
 
-# Parar EC2 inteiro (custo ~$0.80/mês só do disco)
-# Via console AWS ou:
+# Parar EC2 inteiro
 aws ec2 stop-instances --instance-ids i-xxxxx
+
+# Parar RDS (CUIDADO: reinicia sozinho após 7 dias!)
+aws rds stop-db-instance --db-instance-identifier tamarcado-db
 ```
 
-**Custos quando parado:**
+**Custos quando parado (Free Tier):**
 - EC2 parado: $0
-- EBS 8GB: ~$0.80/mês
+- RDS parado: $0 (mas reinicia após 7 dias!)
+- EBS: $0 (free tier até 30GB)
 - Upstash: $0
 
 ---
@@ -722,26 +767,26 @@ aws ce get-cost-and-usage \
 
 ---
 
-## Migrar para Arquitetura Profissional (Futuro)
+## Após Free Tier Expirar (12 meses)
 
-Quando tiver budget ou clientes:
-1. Mover PostgreSQL para **RDS** (Multi-AZ)
-2. Mover API para **ECS Fargate** (auto-scaling)
-3. Adicionar **ALB** (HTTPS automático)
-4. Trocar Upstash por **ElastiCache Redis**
-5. O código já está preparado para tudo isso!
+Duas opções:
+1. **Manter na AWS (~$7/mês):** Use EC2 t4g.micro + PostgreSQL no Docker (sem RDS)
+2. **Migrar para profissional (~$90/mês):** ECS Fargate + RDS Multi-AZ + ALB
+
+O código já está preparado para ambas as opções!
 
 ---
 
 ## Checklist Final
 
 - [ ] Conta Upstash criada (Redis grátis)
-- [ ] Budget alert configurado ($10)
-- [ ] Security Group criado
-- [ ] EC2 t4g.micro criado
+- [ ] Budget alert configurado ($0)
+- [ ] Security Groups criados (EC2 + RDS)
+- [ ] RDS PostgreSQL criado (free tier)
+- [ ] EC2 t3.micro criado (free tier)
 - [ ] Docker + Docker Compose instalados
 - [ ] Swap de 1GB configurado
-- [ ] .env.prod configurado
+- [ ] .env.prod configurado com endpoint RDS
 - [ ] `docker-compose up` rodando
 - [ ] Health check funcionando
 - [ ] GitHub Secrets configurados (CI/CD)
