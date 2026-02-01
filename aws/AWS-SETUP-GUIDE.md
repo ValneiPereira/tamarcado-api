@@ -4,82 +4,74 @@ Este guia explica passo a passo como fazer deploy da API na AWS.
 
 ---
 
-## AWS Free Tier - O que é Grátis (Primeiros 12 meses)
+## Arquitetura Atual: EC2 t4g.micro (~$6/mês)
 
-| Serviço | Free Tier | Suficiente? |
-|---------|-----------|-------------|
-| **EC2** | 750h/mês t2.micro ou t3.micro | ✅ Sim |
-| **RDS PostgreSQL** | 750h/mês db.t3.micro, 20GB | ✅ Sim |
-| **S3** | 5GB armazenamento | ✅ Sim |
-| **ECR** | 500MB/mês | ✅ Sim |
-| **CloudWatch** | Métricas básicas | ✅ Sim |
-| **Secrets Manager** | 30 dias grátis, depois $0.40/secret | ⚠️ Parcial |
-| **ECS Fargate** | ❌ NÃO TEM FREE TIER | ❌ Pago |
-| **ALB** | ❌ NÃO TEM FREE TIER | ❌ Pago |
-| **NAT Gateway** | ❌ NÃO TEM FREE TIER | ❌ Pago |
-| **ElastiCache** | ❌ NÃO TEM FREE TIER | ❌ Pago |
+Estratégia de menor custo: API + PostgreSQL no mesmo EC2 via Docker Compose.
+
+```
+┌──────────────────────────────────────────────────────┐
+│              EC2 t4g.micro (~$6/mês)                  │
+│         ARM Graviton | 2 vCPU | 1GB RAM              │
+│                                                       │
+│  ┌──────────────────┐    ┌──────────────────────┐    │
+│  │  Docker:         │    │  Docker:             │    │
+│  │  tamarcado-api   │───▶│  PostgreSQL 16       │    │
+│  │  Java 21 (400MB) │    │  (200MB)             │    │
+│  │  port 8080       │    │  Volume: EBS 8GB     │    │
+│  └──────────────────┘    └──────────────────────┘    │
+│         │                                             │
+│         │   1GB Swap (disco) para segurança           │
+└─────────┼─────────────────────────────────────────────┘
+          │
+          ▼
+┌──────────────────────┐
+│   Upstash Redis      │
+│   (Grátis p/ sempre) │
+└──────────────────────┘
+```
+
+### Custos Reais (região sa-east-1 - São Paulo)
+
+| Serviço | Configuração | Custo/mês |
+|---------|--------------|-----------|
+| **EC2 t4g.micro** | 2 vCPU ARM, 1GB RAM | ~$6.20 |
+| **EBS** | 8GB gp3 | ~$0.80 |
+| **Elastic IP** | Associado ao EC2 | $0 |
+| **Upstash Redis** | Free tier (10K cmd/dia) | $0 |
+| **PostgreSQL** | Docker no EC2 | $0 |
+| **Total** | | **~$7/mês** |
+
+### Distribuição de Memória (1GB)
+
+| Componente | RAM | Observação |
+|------------|-----|------------|
+| Sistema + Docker | ~150MB | Amazon Linux 2023 |
+| PostgreSQL | ~200MB | shared_buffers=64MB, max_conn=20 |
+| Java API | ~400MB | MaxRAMPercentage=60%, G1GC |
+| Swap (disco) | 1GB | Segurança contra OOM |
 
 ---
 
 ## Opções de Deploy por Custo
 
-### Opção 1: Arquitetura Profissional (ECS Fargate) - ~$90/mês
-Para quando você tiver budget ou clientes pagando.
+### Opção 1 (ATUAL): EC2 t4g.micro - ~$7/mês
+Portfólio e estudos. Tudo no mesmo EC2.
 
-| Serviço | Custo |
-|---------|-------|
-| ECS Fargate | ~$15 |
-| RDS PostgreSQL | ~$15 |
-| ALB | ~$20 |
-| NAT Gateway | ~$35 |
-| Upstash Redis | $0 |
-| Outros | ~$5 |
-| **Total** | **~$90/mês** |
+### Opção 2: EC2 t4g.small - ~$13/mês
+Mais folga de RAM (2GB). Quando tiver mais budget.
 
-### Opção 2: Arquitetura Econômica (EC2) - ~$5-15/mês
-Ideal para estudos e portfólio.
-
-| Serviço | Custo |
-|---------|-------|
-| EC2 t3.micro | $0 (free tier) ou ~$8 |
-| RDS db.t3.micro | $0 (free tier) ou ~$15 |
-| Upstash Redis | $0 |
-| Elastic IP | $0 (se associado) |
-| **Total** | **$0-15/mês** |
-
-### Opção 3: 100% Grátis (Free Tier + Serviços Externos)
-Para aprender sem gastar nada nos primeiros 12 meses.
-
-| Serviço | Custo |
-|---------|-------|
-| EC2 t3.micro | $0 (750h free) |
-| RDS db.t3.micro | $0 (750h free) |
-| Upstash Redis | $0 |
-| Domínio | Opcional |
-| **Total** | **$0/mês** |
+### Opção 3: ECS Fargate + RDS - ~$90/mês
+Arquitetura profissional. Quando tiver clientes pagando.
 
 ---
 
-## Recomendação para Estudos/Portfólio
+## Dicas para Economizar
 
-**Use a Opção 3 (100% Grátis)** pelos primeiros 12 meses:
-- EC2 com Docker (em vez de ECS Fargate)
-- RDS PostgreSQL free tier
-- Upstash Redis (externo, grátis)
-- Acesso direto via IP público (sem ALB)
-
-Quando tiver clientes/trabalho, migre para a Opção 1 (ECS Fargate).
-
----
-
-## Dicas para Não Gastar Dinheiro
-
-1. **Configure Budget Alerts**: AWS > Billing > Budgets > Create Budget ($1)
-2. **Desligue quando não usar**: Pare EC2/RDS à noite
-3. **Use apenas uma região**: sa-east-1 (São Paulo)
-4. **Evite NAT Gateway**: Use subnet pública para EC2
-5. **Evite ALB**: Acesse direto pelo IP do EC2
-6. **Monitore o Free Tier**: AWS > Billing > Free Tier
+1. **Configure Budget Alerts**: AWS > Billing > Budgets > Create Budget ($10)
+2. **Pare EC2 quando não usar**: EC2 parado = $0 (só paga EBS ~$0.80)
+3. **Use apenas sa-east-1** (São Paulo)
+4. **Sem NAT Gateway, sem ALB, sem RDS**: Tudo no EC2
+5. **Upstash Redis**: Grátis para sempre (não use ElastiCache)
 
 ---
 
@@ -445,19 +437,9 @@ aws ecs update-service \
 ---
 ---
 
-# ALTERNATIVA GRATUITA: Deploy com EC2 (Free Tier)
+# DEPLOY: EC2 t4g.micro + Docker Compose (~$7/mês)
 
-Esta seção ensina como fazer deploy **100% grátis** usando EC2 em vez de ECS Fargate.
-
-## Arquitetura Gratuita
-
-```
-Internet ──▶ EC2 t3.micro (Docker) ──▶ RDS PostgreSQL
-                    │
-                    └──▶ Upstash Redis (externo)
-```
-
-**Custo: $0/mês** (nos primeiros 12 meses do Free Tier)
+Tudo no mesmo EC2: API + PostgreSQL via Docker Compose. Sem RDS, sem ALB, sem NAT Gateway.
 
 ---
 
@@ -472,109 +454,53 @@ Internet ──▶ EC2 t3.micro (Docker) ──▶ RDS PostgreSQL
 
 ---
 
-## Passo 2: Criar Conta AWS
-
-1. Acesse https://aws.amazon.com
-2. **Create an AWS Account**
-3. Use um email novo (para garantir Free Tier)
-4. Adicione cartão de crédito (não será cobrado se ficar no free tier)
-
----
-
-## Passo 3: Configurar Alerta de Custos (IMPORTANTE!)
-
-**Faça isso PRIMEIRO para evitar surpresas:**
+## Passo 2: Configurar Alerta de Custos (PRIMEIRO!)
 
 1. Vá para **Billing** > **Budgets** > **Create budget**
-2. Escolha **Zero spend budget**
-3. Configure email para alertas
-4. Agora você será avisado se algo sair do free tier
+2. Escolha **Monthly cost budget**
+3. Budget amount: `$10`
+4. Configure email para alertas em 80% e 100%
 
 ---
 
-## Passo 4: Criar VPC (Rede)
+## Passo 3: Criar Security Group
 
-1. Vá para **VPC** > **Create VPC**
-2. Escolha **VPC and more**
-3. Configurações:
-   - Name: `tamarcado`
-   - IPv4 CIDR: `10.0.0.0/16`
-   - Availability Zones: `1`
-   - Public subnets: `1`
-   - Private subnets: `1`
-   - NAT gateways: `None` (custa dinheiro!)
-   - VPC endpoints: `None`
-4. **Create VPC**
-
----
-
-## Passo 5: Criar Security Groups
-
-### 5.1 Security Group para EC2
-1. **VPC** > **Security Groups** > **Create**
-2. Name: `tamarcado-ec2-sg`
+1. **EC2** > **Security Groups** > **Create**
+2. Name: `tamarcado-sg`
 3. Inbound rules:
-   - SSH (22) → My IP
-   - HTTP (80) → 0.0.0.0/0
-   - HTTPS (443) → 0.0.0.0/0
-   - Custom TCP (8080) → 0.0.0.0/0
 
-### 5.2 Security Group para RDS
-1. Name: `tamarcado-rds-sg`
-2. Inbound rules:
-   - PostgreSQL (5432) → tamarcado-ec2-sg
+| Tipo | Porta | Origem | Descrição |
+|------|-------|--------|-----------|
+| SSH | 22 | My IP | Acesso SSH |
+| HTTP | 80 | 0.0.0.0/0 | Web (futuro Nginx) |
+| HTTPS | 443 | 0.0.0.0/0 | Web SSL (futuro) |
+| Custom TCP | 8080 | 0.0.0.0/0 | API Spring Boot |
 
 ---
 
-## Passo 6: Criar RDS PostgreSQL (Free Tier)
-
-1. Vá para **RDS** > **Create database**
-2. Configurações:
-   - **Engine:** PostgreSQL
-   - **Template:** Free tier ✅
-   - **DB instance identifier:** tamarcado-db
-   - **Master username:** tamarcado
-   - **Master password:** (crie uma senha forte, ANOTE!)
-   - **DB instance class:** db.t3.micro (free tier)
-   - **Storage:** 20 GB gp2
-   - **VPC:** tamarcado-vpc
-   - **Subnet group:** Create new
-   - **Public access:** No
-   - **Security group:** tamarcado-rds-sg
-   - **Database name:** tamarcado
-3. **Create database**
-4. Aguarde ~5 minutos
-5. Anote o **Endpoint**: `tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com`
-
----
-
-## Passo 7: Criar EC2 (Free Tier)
+## Passo 4: Criar EC2 t4g.micro
 
 1. Vá para **EC2** > **Launch instance**
 2. Configurações:
    - **Name:** tamarcado-api
-   - **AMI:** Amazon Linux 2023 (Free tier eligible)
-   - **Instance type:** t3.micro (free tier) ou t2.micro
+   - **AMI:** Amazon Linux 2023 (ARM64)
+   - **Instance type:** t4g.micro
    - **Key pair:** Create new → `tamarcado-key` → Download .pem
-   - **Network:** tamarcado-vpc
-   - **Subnet:** Public subnet
+   - **Network:** Default VPC
    - **Auto-assign public IP:** Enable
-   - **Security group:** tamarcado-ec2-sg
-   - **Storage:** 8 GB gp3 (free tier)
+   - **Security group:** tamarcado-sg
+   - **Storage:** 8 GB gp3
 3. **Launch instance**
 4. Anote o **Public IP**
 
 ---
 
-## Passo 8: Conectar no EC2
+## Passo 5: Conectar no EC2
 
 ### Windows (PowerShell):
 ```powershell
-# Mover a chave para pasta segura
 mkdir ~\.ssh -Force
 mv ~/Downloads/tamarcado-key.pem ~/.ssh/
-
-# Conectar
 ssh -i ~/.ssh/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
 ```
 
@@ -586,25 +512,38 @@ ssh -i ~/Downloads/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
 
 ---
 
-## Passo 9: Instalar Docker no EC2
+## Passo 6: Instalar Tudo com o Script de Setup
 
-Execute estes comandos no EC2:
+```bash
+# Opção 1: Download e executar o script
+curl -sL https://raw.githubusercontent.com/ValneiPereira/tamarcado-api/main/aws/setup-ec2.sh | bash
+```
 
+Ou manualmente:
 ```bash
 # Atualizar sistema
 sudo dnf update -y
 
-# Instalar Docker
-sudo dnf install docker -y
+# Instalar Docker e Git
+sudo dnf install docker git -y
 sudo systemctl start docker
 sudo systemctl enable docker
 sudo usermod -aG docker ec2-user
 
 # Instalar Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+ARCH=$(uname -m)
+sudo curl -sL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
-# Sair e entrar novamente para aplicar grupo docker
+# Configurar 1GB de Swap (ESSENCIAL para 1GB RAM!)
+sudo dd if=/dev/zero of=/swapfile bs=128M count=8
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+sudo sysctl vm.swappiness=60
+
+# Sair e reconectar para aplicar grupo docker
 exit
 ```
 
@@ -612,89 +551,71 @@ Reconecte via SSH.
 
 ---
 
-## Passo 10: Configurar Variáveis de Ambiente
+## Passo 7: Clonar Repositório e Configurar
 
 ```bash
+# Clonar
+git clone https://github.com/ValneiPereira/tamarcado-api.git ~/tamarcado-api
+cd ~/tamarcado-api
+
 # Criar arquivo de ambiente
-cat > ~/.env << 'EOF'
-SPRING_PROFILES_ACTIVE=prod
-DATABASE_HOST=tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com
-DATABASE_PORT=5432
-DATABASE_NAME=tamarcado
-DATABASE_USERNAME=tamarcado
-DATABASE_PASSWORD=SUA_SENHA_DO_RDS
-REDIS_URL=rediss://default:xxx@xxx.upstash.io:6379
-JWT_SECRET=sua-chave-jwt-super-secreta-minimo-256-bits-1234567890abcdef
+cp .env.prod.example .env.prod
+nano .env.prod
+```
+
+Preencha o `.env.prod`:
+```bash
+POSTGRES_DB=tamarcado
+POSTGRES_USER=tamarcado
+POSTGRES_PASSWORD=SUA_SENHA_FORTE_AQUI
+
+REDIS_URL=rediss://default:SUA_SENHA@SEU_HOST.upstash.io:6379
+
+JWT_SECRET=SUA_CHAVE_JWT_MINIMO_32_CARACTERES_AQUI
+
 CORS_ALLOWED_ORIGINS=*
-EOF
-
-# Proteger arquivo
-chmod 600 ~/.env
 ```
 
 ---
 
-## Passo 11: Fazer Deploy Manual
-
-### Opção A: Build direto no EC2 (mais simples)
+## Passo 8: Subir a Aplicação
 
 ```bash
-# Clonar repositório
-git clone https://github.com/SEU_USUARIO/tamarcado-api.git
-cd tamarcado-api
+cd ~/tamarcado-api
 
-# Build da imagem
-docker build -t tamarcado-api .
+# Build e start (primeira vez demora mais)
+docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
-# Rodar container
-docker run -d \
-  --name tamarcado-api \
-  --env-file ~/.env \
-  -p 8080:8080 \
-  --restart unless-stopped \
-  tamarcado-api
-```
-
-### Opção B: Usar imagem do Docker Hub
-
-```bash
-# Fazer login no Docker Hub (se for imagem privada)
-docker login
-
-# Pull e run
-docker run -d \
-  --name tamarcado-api \
-  --env-file ~/.env \
-  -p 8080:8080 \
-  --restart unless-stopped \
-  SEU_USUARIO/tamarcado-api:latest
-```
-
----
-
-## Passo 12: Testar
-
-```bash
-# Ver logs
+# Acompanhar logs (Java demora ~60-90s para iniciar em 1GB RAM)
 docker logs -f tamarcado-api
+```
 
-# Testar health check
+---
+
+## Passo 9: Testar
+
+```bash
+# Health check local
 curl http://localhost:8080/api/v1/actuator/health
 
-# Testar de fora (use o IP público)
-# No seu navegador: http://SEU_IP_PUBLICO:8080/api/v1/actuator/health
+# No navegador (use o IP público):
+# http://SEU_IP_PUBLICO:8080/api/v1/actuator/health
+# http://SEU_IP_PUBLICO:8080/api/v1/swagger-ui.html
+
+# Ver uso de memória
+free -m
+docker stats --no-stream
 ```
 
 ---
 
-## Passo 13: Configurar HTTPS (Opcional, Grátis)
+## Passo 10: Configurar HTTPS (Opcional, Grátis)
 
-Para ter HTTPS grátis usando Let's Encrypt:
+Precisa de um domínio apontando para o IP do EC2.
 
 ```bash
 # Instalar Nginx e Certbot
-sudo dnf install nginx -y
-sudo dnf install python3-certbot-nginx -y
+sudo dnf install nginx python3-certbot-nginx -y
 
 # Configurar Nginx como proxy
 sudo tee /etc/nginx/conf.d/tamarcado.conf << 'EOF'
@@ -712,96 +633,118 @@ server {
 }
 EOF
 
-# Iniciar Nginx
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
-# Obter certificado SSL (precisa de domínio apontando para o IP)
+# Certificado SSL grátis
 sudo certbot --nginx -d SEU_DOMINIO.com.br
 ```
 
 ---
 
-## Comandos Úteis EC2
+## Passo 11: Configurar CI/CD no GitHub
+
+Adicione estes secrets no repositório GitHub:
+
+1. **Settings** > **Secrets and variables** > **Actions**
+
+| Secret | Valor |
+|--------|-------|
+| `EC2_HOST` | IP público do EC2 |
+| `EC2_USERNAME` | `ec2-user` |
+| `EC2_SSH_KEY` | Conteúdo do arquivo .pem |
+
+Agora, todo push para `main` faz deploy automático!
+
+---
+
+## Comandos Úteis
 
 ```bash
-# Ver status do container
+# Ver containers rodando
 docker ps
 
-# Ver logs
+# Ver logs da API
 docker logs -f tamarcado-api
 
-# Reiniciar container
-docker restart tamarcado-api
+# Ver logs do PostgreSQL
+docker logs -f tamarcado-postgres
 
-# Atualizar aplicação
+# Reiniciar tudo
+cd ~/tamarcado-api
+docker-compose -f docker-compose.prod.yml --env-file .env.prod restart
+
+# Atualizar aplicação manualmente
 cd ~/tamarcado-api
 git pull
-docker build -t tamarcado-api .
-docker stop tamarcado-api
-docker rm tamarcado-api
-docker run -d --name tamarcado-api --env-file ~/.env -p 8080:8080 --restart unless-stopped tamarcado-api
+docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
-# Parar tudo (para não gastar se sair do free tier)
-docker stop tamarcado-api
+# Ver uso de memória
+free -m
+docker stats --no-stream
+
+# Backup do banco
+docker exec tamarcado-postgres pg_dump -U tamarcado tamarcado > backup_$(date +%Y%m%d).sql
 ```
+
+---
+
+## Parar Tudo (Economizar)
+
+```bash
+# Parar containers (EC2 continua rodando)
+cd ~/tamarcado-api
+docker-compose -f docker-compose.prod.yml --env-file .env.prod down
+
+# Parar EC2 inteiro (custo ~$0.80/mês só do disco)
+# Via console AWS ou:
+aws ec2 stop-instances --instance-ids i-xxxxx
+```
+
+**Custos quando parado:**
+- EC2 parado: $0
+- EBS 8GB: ~$0.80/mês
+- Upstash: $0
 
 ---
 
 ## Monitorar Custos
 
+Via Console: **AWS** > **Billing** > **Bills**
+
 ```bash
-# Via AWS CLI
+# Via CLI
 aws ce get-cost-and-usage \
-  --time-period Start=2024-01-01,End=2024-01-31 \
+  --time-period Start=$(date +%Y-%m-01),End=$(date +%Y-%m-%d) \
   --granularity MONTHLY \
   --metrics BlendedCost
 ```
 
-Ou acesse: **AWS Console** > **Billing** > **Bills**
+---
+
+## Migrar para Arquitetura Profissional (Futuro)
+
+Quando tiver budget ou clientes:
+1. Mover PostgreSQL para **RDS** (Multi-AZ)
+2. Mover API para **ECS Fargate** (auto-scaling)
+3. Adicionar **ALB** (HTTPS automático)
+4. Trocar Upstash por **ElastiCache Redis**
+5. O código já está preparado para tudo isso!
 
 ---
 
-## Desligar Tudo (Custo Zero)
-
-Se quiser parar de usar temporariamente:
-
-```bash
-# Parar EC2 (no console AWS ou CLI)
-aws ec2 stop-instances --instance-ids i-xxxxx
-
-# Parar RDS
-aws rds stop-db-instance --db-instance-identifier tamarcado-db
-```
-
-**Importante:**
-- EC2 parado = $0
-- RDS parado = $0 (mas reinicia automaticamente após 7 dias!)
-- EBS (disco) continua cobrando ~$0.80/mês
-
----
-
-## Migrar para ECS Fargate Depois
-
-Quando tiver budget ou clientes, basta:
-1. Seguir os passos 7-13 da primeira parte deste guia
-2. O código já está pronto para ECS
-3. Apontar o domínio para o ALB
-
----
-
-## Checklist Final - Deploy Gratuito
+## Checklist Final
 
 - [ ] Conta Upstash criada (Redis grátis)
-- [ ] Conta AWS criada
-- [ ] Budget alert configurado ($0)
-- [ ] VPC criada (sem NAT Gateway!)
-- [ ] Security Groups criados
-- [ ] RDS PostgreSQL criado (free tier)
-- [ ] EC2 criado (free tier)
-- [ ] Docker instalado
-- [ ] Aplicação rodando
+- [ ] Budget alert configurado ($10)
+- [ ] Security Group criado
+- [ ] EC2 t4g.micro criado
+- [ ] Docker + Docker Compose instalados
+- [ ] Swap de 1GB configurado
+- [ ] .env.prod configurado
+- [ ] `docker-compose up` rodando
 - [ ] Health check funcionando
+- [ ] GitHub Secrets configurados (CI/CD)
 
 ---
 
