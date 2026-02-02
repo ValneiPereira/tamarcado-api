@@ -5,6 +5,17 @@
 
 Backend API desenvolvida com Spring Boot 3.2+ e Java 21 seguindo os princípios de **Clean Architecture** e **Hexagonal Architecture (Ports & Adapters)**.
 
+## ☁️ Deploy na AWS (Free Tier)
+
+Esta aplicação está hospedada na **AWS** utilizando o **Free Tier**, para fins de **estudo e portfólio**. A infraestrutura utiliza:
+
+- **EC2 (t3.micro)** - Free Tier, servidor da aplicação
+- **PostgreSQL** - Banco de dados relacional
+- **Redis** - Cache em memória
+
+
+> **Nota:** O ambiente na AWS é utilizado exclusivamente para fins educacionais e de portfólio, demonstrando conhecimentos em deploy, infraestrutura cloud e DevOps.
+
 ## 🚀 Tecnologias
 
 ### Backend
@@ -244,17 +255,6 @@ docker-compose down
 ```bash
 docker-compose logs -f
 ```
-
-## ☁️ Deploy na AWS (Free Tier)
-
-Esta aplicação está hospedada na **AWS** utilizando o **Free Tier**, para fins de **estudo e portfólio**. A infraestrutura utiliza:
-
-- **EC2 (t3.micro)** - Free Tier, servidor da aplicação
-- **PostgreSQL** - Banco de dados relacional
-- **Redis** - Cache em memória
-
-
-> **Nota:** O ambiente na AWS é utilizado exclusivamente para fins educacionais e de portfólio, demonstrando conhecimentos em deploy, infraestrutura cloud e DevOps.
 
 ## 📝 Licença
 
