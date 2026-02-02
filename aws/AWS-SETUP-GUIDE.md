@@ -1,12 +1,10 @@
 # Guia de Deploy AWS - Tá Marcado! API
 
-Este guia explica passo a passo como fazer deploy da API na AWS.
-
 ---
 
-## Arquitetura Atual: AWS Free Tier ($0/mês)
+## Arquitetura: AWS Free Tier ($0/mês por 12 meses)
 
-EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis).
+EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis sempre).
 
 ```
 ┌──────────────────────────────────────────────────────┐
@@ -14,8 +12,7 @@ EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis).
 │         2 vCPU | 1GB RAM | 750h/mês grátis           │
 │                                                       │
 │  ┌──────────────────────────────────────────────┐    │
-│  │  Docker:                                      │    │
-│  │  tamarcado-api (Java 21)                      │    │
+│  │  Docker: tamarcado-api (Java 21)              │    │
 │  │  ~700MB RAM disponível (só API, sem PG)       │    │
 │  │  port 8080                                    │    │
 │  └──────────────┬───────────────────────────────┘    │
@@ -44,7 +41,7 @@ EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis).
 | **Transferência** | 100GB/mês | **$0** |
 | **Total** | | **$0/mês** |
 
-### Distribuição de Memória (1GB) - Mais Folga!
+### Distribuição de Memória (1GB)
 
 | Componente | RAM | Observação |
 |------------|-----|------------|
@@ -52,20 +49,15 @@ EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis).
 | Java API | ~700MB | MaxRAMPercentage=70%, G1GC |
 | Swap (disco) | 1GB | Segurança contra OOM |
 
-**Vantagem vs versão anterior:** Sem PostgreSQL local, a API Java tem ~700MB em vez de ~400MB.
-
 ---
 
 ## Opções de Deploy por Custo
 
-### Opção 1 (ATUAL): Free Tier - $0/mês
-EC2 + RDS grátis por 12 meses. Portfólio e estudos.
-
-### Opção 2: Pós Free Tier - EC2 t4g.micro - ~$7/mês
-API + PostgreSQL no mesmo EC2 via Docker Compose (sem RDS).
-
-### Opção 3: ECS Fargate + RDS - ~$90/mês
-Arquitetura profissional. Quando tiver clientes pagando.
+| Opção | Custo | Quando usar |
+|-------|-------|-------------|
+| **Free Tier (ATUAL)** | $0/mês | Portfólio e estudos (12 meses) |
+| EC2 t4g.micro + PG Docker | ~$7/mês | Após Free Tier expirar |
+| ECS Fargate + RDS + ALB | ~$90/mês | Produção com clientes pagando |
 
 ---
 
@@ -82,38 +74,14 @@ Arquitetura profissional. Quando tiver clientes pagando.
 
 ## Pré-requisitos
 
-- Conta AWS (criar em https://aws.amazon.com)
-- AWS CLI instalado
+- Conta AWS com Free Tier ativo (https://aws.amazon.com)
+- AWS CLI instalado no seu PC
 - Conta Upstash (https://upstash.com) - Redis gratuito
 
----
+### Instalar AWS CLI (PowerShell)
 
-## Passo 1: Criar Conta Upstash (Redis Gratuito)
-
-1. Acesse https://console.upstash.com
-2. Crie uma conta (pode usar GitHub)
-3. Clique em **Create Database**
-4. Escolha:
-   - **Name:** tamarcado-redis
-   - **Region:** South America (São Paulo)
-   - **Type:** Regional
-5. Copie a **UPSTASH_REDIS_REST_URL** (formato: `rediss://default:xxx@xxx.upstash.io:6379`)
-
----
-
-## Passo 2: Criar Conta AWS
-
-1. Acesse https://aws.amazon.com
-2. Clique em **Create an AWS Account**
-3. Complete o cadastro (precisa de cartão de crédito)
-4. Escolha o plano **Free Tier**
-
----
-
-## Passo 3: Configurar AWS CLI
-
-```bash
-# Instalar AWS CLI (Windows)
+```powershell
+# Instalar via winget
 winget install Amazon.AWSCLI
 
 # Configurar credenciais
@@ -126,325 +94,7 @@ aws configure
 
 ---
 
-## Passo 4: Criar VPC e Subnets
-
-```bash
-# Criar VPC
-aws ec2 create-vpc \
-  --cidr-block 10.0.0.0/16 \
-  --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=tamarcado-vpc}]'
-
-# Anotar o VPC_ID retornado
-```
-
-Ou use o Console AWS:
-1. Vá para **VPC** > **Your VPCs** > **Create VPC**
-2. Escolha **VPC and more** para criar tudo automaticamente
-3. Nomeie como `tamarcado`
-
----
-
-## Passo 5: Criar RDS PostgreSQL
-
-### Via Console:
-1. Vá para **RDS** > **Create database**
-2. Configurações:
-   - **Engine:** PostgreSQL 16
-   - **Template:** Free tier
-   - **DB instance identifier:** tamarcado-db
-   - **Master username:** tamarcado
-   - **Master password:** (crie uma senha forte)
-   - **DB instance class:** db.t3.micro
-   - **Storage:** 20 GB
-   - **VPC:** tamarcado-vpc
-   - **Public access:** No
-3. Clique **Create database**
-
-### Anotar o Endpoint:
-```
-tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com
-```
-
----
-
-## Passo 6: Criar Secrets no Secrets Manager
-
-```bash
-# Secret do banco de dados
-aws secretsmanager create-secret \
-  --name tamarcado/prod/database \
-  --secret-string '{
-    "host": "tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com",
-    "dbname": "tamarcado",
-    "username": "tamarcado",
-    "password": "SUA_SENHA_AQUI"
-  }'
-
-# Secret do Redis (Upstash)
-aws secretsmanager create-secret \
-  --name tamarcado/prod/redis \
-  --secret-string '{
-    "url": "rediss://default:xxx@xxx.upstash.io:6379"
-  }'
-
-# Secret do JWT
-aws secretsmanager create-secret \
-  --name tamarcado/prod/jwt \
-  --secret-string '{
-    "secret": "sua-chave-jwt-minimo-256-bits-muito-segura-aqui-12345678901234567890"
-  }'
-
-# Secret do App
-aws secretsmanager create-secret \
-  --name tamarcado/prod/app \
-  --secret-string '{
-    "cors_origins": "https://app.tamarcado.com.br"
-  }'
-```
-
----
-
-## Passo 7: Criar ECR Repository
-
-```bash
-aws ecr create-repository \
-  --repository-name tamarcado-api \
-  --image-scanning-configuration scanOnPush=true
-```
-
-Anotar o URI:
-```
-123456789012.dkr.ecr.sa-east-1.amazonaws.com/tamarcado-api
-```
-
----
-
-## Passo 8: Criar ECS Cluster
-
-```bash
-aws ecs create-cluster \
-  --cluster-name tamarcado-cluster \
-  --capacity-providers FARGATE FARGATE_SPOT \
-  --default-capacity-provider-strategy capacityProvider=FARGATE,weight=1
-```
-
----
-
-## Passo 9: Criar IAM Roles
-
-### 9.1 ECS Task Execution Role
-
-```bash
-# Criar role
-aws iam create-role \
-  --role-name ecsTaskExecutionRole \
-  --assume-role-policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Principal": {"Service": "ecs-tasks.amazonaws.com"},
-      "Action": "sts:AssumeRole"
-    }]
-  }'
-
-# Anexar políticas
-aws iam attach-role-policy \
-  --role-name ecsTaskExecutionRole \
-  --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
-
-# Permitir acesso ao Secrets Manager
-aws iam put-role-policy \
-  --role-name ecsTaskExecutionRole \
-  --policy-name SecretsManagerAccess \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Action": [
-        "secretsmanager:GetSecretValue"
-      ],
-      "Resource": "arn:aws:secretsmanager:sa-east-1:*:secret:tamarcado/*"
-    }]
-  }'
-```
-
----
-
-## Passo 10: Criar Application Load Balancer
-
-### Via Console:
-1. Vá para **EC2** > **Load Balancers** > **Create Load Balancer**
-2. Escolha **Application Load Balancer**
-3. Configurações:
-   - **Name:** tamarcado-alb
-   - **Scheme:** Internet-facing
-   - **VPC:** tamarcado-vpc
-   - **Subnets:** Selecione as subnets públicas
-4. **Listeners:**
-   - HTTP:80 → Redirect to HTTPS:443
-   - HTTPS:443 → Target Group
-5. Crie um **Target Group:**
-   - **Name:** tamarcado-tg
-   - **Target type:** IP
-   - **Protocol:** HTTP
-   - **Port:** 8080
-   - **Health check:** /api/v1/actuator/health
-
----
-
-## Passo 11: Criar ECS Service
-
-### 11.1 Registrar Task Definition
-
-Primeiro, edite o arquivo `aws/task-definition.json`:
-- Substitua `${AWS_ACCOUNT_ID}` pelo seu ID de conta AWS
-- Substitua `${AWS_REGION}` por `sa-east-1`
-
-```bash
-aws ecs register-task-definition \
-  --cli-input-json file://aws/task-definition.json
-```
-
-### 11.2 Criar Service
-
-```bash
-aws ecs create-service \
-  --cluster tamarcado-cluster \
-  --service-name tamarcado-api-service \
-  --task-definition tamarcado-api \
-  --desired-count 1 \
-  --launch-type FARGATE \
-  --network-configuration '{
-    "awsvpcConfiguration": {
-      "subnets": ["subnet-xxx", "subnet-yyy"],
-      "securityGroups": ["sg-xxx"],
-      "assignPublicIp": "DISABLED"
-    }
-  }' \
-  --load-balancers '[{
-    "targetGroupArn": "arn:aws:elasticloadbalancing:sa-east-1:xxx:targetgroup/tamarcado-tg/xxx",
-    "containerName": "tamarcado-api",
-    "containerPort": 8080
-  }]'
-```
-
----
-
-## Passo 12: Configurar GitHub Actions
-
-Adicione estes secrets no seu repositório GitHub:
-
-1. Vá para **Settings** > **Secrets and variables** > **Actions**
-2. Adicione os seguintes secrets:
-
-| Secret | Valor |
-|--------|-------|
-| `AWS_ACCESS_KEY_ID` | Sua access key do IAM |
-| `AWS_SECRET_ACCESS_KEY` | Sua secret key do IAM |
-| `AWS_ACCOUNT_ID` | Seu ID de conta (12 dígitos) |
-| `ECR_REPOSITORY` | tamarcado-api |
-| `ECS_CLUSTER` | tamarcado-cluster |
-| `ECS_SERVICE` | tamarcado-api-service |
-
-3. Adicione a variável:
-
-| Variable | Valor |
-|----------|-------|
-| `AWS_REGION` | sa-east-1 |
-
----
-
-## Passo 13: Fazer Deploy
-
-```bash
-# Commit e push para main
-git add .
-git commit -m "feat: add AWS deployment configuration"
-git push origin main
-```
-
-O GitHub Actions vai:
-1. Rodar os testes
-2. Buildar a imagem Docker
-3. Fazer push para ECR
-4. Atualizar o ECS Service
-
----
-
-## Verificar Deploy
-
-```bash
-# Ver status do service
-aws ecs describe-services \
-  --cluster tamarcado-cluster \
-  --services tamarcado-api-service
-
-# Ver logs
-aws logs tail /ecs/tamarcado-api --follow
-```
-
----
-
-## Troubleshooting
-
-### API não inicia
-```bash
-# Ver eventos do ECS
-aws ecs describe-services --cluster tamarcado-cluster --services tamarcado-api-service
-
-# Ver logs do container
-aws logs get-log-events --log-group-name /ecs/tamarcado-api --log-stream-name <stream>
-```
-
-### Erro de conexão com RDS
-- Verifique se o Security Group do RDS permite conexão do Security Group do ECS
-- Verifique se estão na mesma VPC
-
-### Erro de Secrets
-- Verifique se a role tem permissão para acessar o Secrets Manager
-- Verifique se os nomes dos secrets estão corretos
-
----
-
-## Custos Adicionais Opcionais
-
-| Serviço | Uso | Custo |
-|---------|-----|-------|
-| Route 53 | Domínio próprio | ~$0.50/mês |
-| ACM | Certificado SSL | Grátis |
-| CloudWatch Alarms | Monitoramento | ~$0.10/alarme |
-| WAF | Firewall | ~$5/mês |
-
----
-
-## Comandos Úteis
-
-```bash
-# Atualizar service (force new deployment)
-aws ecs update-service \
-  --cluster tamarcado-cluster \
-  --service tamarcado-api-service \
-  --force-new-deployment
-
-# Escalar para 2 instâncias
-aws ecs update-service \
-  --cluster tamarcado-cluster \
-  --service tamarcado-api-service \
-  --desired-count 2
-
-# Parar service (custo zero)
-aws ecs update-service \
-  --cluster tamarcado-cluster \
-  --service tamarcado-api-service \
-  --desired-count 0
-```
-
----
----
-
-# DEPLOY: AWS Free Tier ($0/mês)
-
-EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
+# PASSO A PASSO DO DEPLOY
 
 ---
 
@@ -471,6 +121,7 @@ EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 ## Passo 3: Criar Security Groups
 
 ### 3.1 Security Group para EC2
+
 1. **EC2** > **Security Groups** > **Create**
 2. Name: `tamarcado-ec2-sg`
 3. Inbound rules:
@@ -483,6 +134,7 @@ EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 | Custom TCP | 8080 | 0.0.0.0/0 | API Spring Boot |
 
 ### 3.2 Security Group para RDS
+
 1. Name: `tamarcado-rds-sg`
 2. Inbound rules:
 
@@ -497,7 +149,7 @@ EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 1. Vá para **RDS** > **Create database**
 2. Configurações:
    - **Engine:** PostgreSQL
-   - **Templates:** Free tier ✅ (IMPORTANTE!)
+   - **Templates:** Free tier (IMPORTANTE!)
    - **DB instance identifier:** tamarcado-db
    - **Master username:** tamarcado
    - **Master password:** (crie uma senha forte, ANOTE!)
@@ -520,8 +172,8 @@ EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 2. Configurações:
    - **Name:** tamarcado-api
    - **AMI:** Amazon Linux 2023 (x86_64) - Free tier eligible
-   - **Instance type:** t3.micro ✅ (Free tier)
-   - **Key pair:** Create new → `tamarcado-key` → Download .pem
+   - **Instance type:** t3.micro (Free tier)
+   - **Key pair:** Create new > `tamarcado-key` > Download .pem
    - **Network:** Default VPC
    - **Auto-assign public IP:** Enable
    - **Security group:** tamarcado-ec2-sg
@@ -533,29 +185,35 @@ EC2 t3.micro (API) + RDS PostgreSQL + Upstash Redis. Tudo grátis por 12 meses.
 
 ## Passo 6: Conectar no EC2
 
-### Windows (PowerShell):
+### PowerShell (Windows):
 ```powershell
-mkdir ~\.ssh -Force
-mv ~/Downloads/tamarcado-key.pem ~/.ssh/
-ssh -i ~/.ssh/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
+# Mover a chave para pasta segura
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.ssh"
+Move-Item "$env:USERPROFILE\Downloads\tamarcado-key.pem" "$env:USERPROFILE\.ssh\tamarcado-key.pem"
+
+# Conectar via SSH
+ssh -i "$env:USERPROFILE\.ssh\tamarcado-key.pem" ec2-user@SEU_IP_PUBLICO
 ```
 
 ### Mac/Linux:
 ```bash
 chmod 400 ~/Downloads/tamarcado-key.pem
-ssh -i ~/Downloads/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
+mv ~/Downloads/tamarcado-key.pem ~/.ssh/
+ssh -i ~/.ssh/tamarcado-key.pem ec2-user@SEU_IP_PUBLICO
 ```
 
 ---
 
-## Passo 7: Instalar Tudo com o Script de Setup
+## Passo 7: Instalar Tudo no EC2
 
+> Os comandos abaixo rodam **dentro do EC2** (Linux), não no seu PC.
+
+### Opção A: Script automático
 ```bash
-# Opção 1: Download e executar o script
 curl -sL https://raw.githubusercontent.com/ValneiPereira/tamarcado-api/main/aws/setup-ec2.sh | bash
 ```
 
-Ou manualmente:
+### Opção B: Manual
 ```bash
 # Atualizar sistema
 sudo dnf update -y
@@ -568,7 +226,8 @@ sudo usermod -aG docker ec2-user
 
 # Instalar Docker Compose
 ARCH=$(uname -m)
-sudo curl -sL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" -o /usr/local/bin/docker-compose
+sudo curl -sL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-${ARCH}" \
+  -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 
 # Configurar 1GB de Swap (ESSENCIAL para 1GB RAM!)
@@ -579,48 +238,50 @@ sudo swapon /swapfile
 echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
 sudo sysctl vm.swappiness=60
 
-# Sair e reconectar para aplicar grupo docker
+# IMPORTANTE: Sair e reconectar para aplicar grupo docker
 exit
 ```
 
-Reconecte via SSH.
+Reconecte via SSH (mesmo comando do Passo 6).
 
 ---
 
 ## Passo 8: Clonar Repositório e Configurar
+
+> Dentro do EC2 (Linux):
 
 ```bash
 # Clonar
 git clone https://github.com/ValneiPereira/tamarcado-api.git ~/tamarcado-api
 cd ~/tamarcado-api
 
-# Criar arquivo de ambiente
+# Criar arquivo de ambiente a partir do template
 cp .env.prod.example .env.prod
 nano .env.prod
 ```
 
-Preencha o `.env.prod` com os dados do RDS:
-```bash
-# RDS endpoint (do passo 4)
+Preencha o `.env.prod` com seus dados reais:
+```
 DATABASE_HOST=tamarcado-db.xxxxx.sa-east-1.rds.amazonaws.com
 DATABASE_PORT=5432
 DATABASE_NAME=tamarcado
 DATABASE_USERNAME=tamarcado
 DATABASE_PASSWORD=SUA_SENHA_DO_RDS
 
-# Upstash (do passo 1)
 REDIS_URL=rediss://default:SUA_SENHA@SEU_HOST.upstash.io:6379
 
-# JWT (gere com: openssl rand -base64 48)
 JWT_SECRET=SUA_CHAVE_JWT_MINIMO_32_CARACTERES_AQUI
 
-# CORS
 CORS_ALLOWED_ORIGINS=*
 ```
+
+> Gerar JWT secret: `openssl rand -base64 48`
 
 ---
 
 ## Passo 9: Subir a Aplicação
+
+> Dentro do EC2 (Linux):
 
 ```bash
 cd ~/tamarcado-api
@@ -636,30 +297,56 @@ docker logs -f tamarcado-api
 
 ## Passo 10: Testar
 
+> Dentro do EC2 (Linux):
 ```bash
-# Health check local
+# Health check
 curl http://localhost:8080/api/v1/actuator/health
-
-# No navegador (use o IP público):
-# http://SEU_IP_PUBLICO:8080/api/v1/actuator/health
-# http://SEU_IP_PUBLICO:8080/api/v1/swagger-ui.html
 
 # Ver uso de memória
 free -m
 docker stats --no-stream
 ```
 
+> No navegador (PowerShell ou qualquer browser):
+```
+http://SEU_IP_PUBLICO:8080/api/v1/actuator/health
+http://SEU_IP_PUBLICO:8080/api/v1/swagger-ui.html
+```
+
 ---
 
-## Passo 11: Configurar HTTPS (Opcional, Grátis)
+## Passo 11: Configurar CI/CD no GitHub
+
+1. **Settings** > **Secrets and variables** > **Actions**
+2. Adicione os secrets:
+
+| Secret | Valor | Como obter |
+|--------|-------|------------|
+| `EC2_HOST` | IP público do EC2 | Console AWS > EC2 |
+| `EC2_USERNAME` | `ec2-user` | Padrão Amazon Linux |
+| `EC2_SSH_KEY` | Conteúdo do arquivo .pem | Abrir o .pem no notepad |
+
+### Ler conteúdo da chave (PowerShell):
+```powershell
+Get-Content "$env:USERPROFILE\.ssh\tamarcado-key.pem" | Set-Clipboard
+# Agora a chave está no clipboard, cole no GitHub Secret
+```
+
+Agora, todo push para `main` faz deploy automático via `ec2-deploy.yml`.
+
+---
+
+## Passo 12: Configurar HTTPS (Opcional, Grátis)
 
 Precisa de um domínio apontando para o IP do EC2.
+
+> Dentro do EC2 (Linux):
 
 ```bash
 # Instalar Nginx e Certbot
 sudo dnf install nginx python3-certbot-nginx -y
 
-# Configurar Nginx como proxy
+# Configurar Nginx como proxy reverso
 sudo tee /etc/nginx/conf.d/tamarcado.conf << 'EOF'
 server {
     listen 80;
@@ -678,29 +365,15 @@ EOF
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
-# Certificado SSL grátis
+# Certificado SSL grátis (Let's Encrypt)
 sudo certbot --nginx -d SEU_DOMINIO.com.br
 ```
 
 ---
 
-## Passo 12: Configurar CI/CD no GitHub
+# COMANDOS ÚTEIS
 
-Adicione estes secrets no repositório GitHub:
-
-1. **Settings** > **Secrets and variables** > **Actions**
-
-| Secret | Valor |
-|--------|-------|
-| `EC2_HOST` | IP público do EC2 |
-| `EC2_USERNAME` | `ec2-user` |
-| `EC2_SSH_KEY` | Conteúdo do arquivo .pem |
-
-Agora, todo push para `main` faz deploy automático!
-
----
-
-## Comandos Úteis
+## No EC2 (Linux)
 
 ```bash
 # Ver containers rodando
@@ -709,14 +382,11 @@ docker ps
 # Ver logs da API
 docker logs -f tamarcado-api
 
-# Ver logs do PostgreSQL
-docker logs -f tamarcado-postgres
-
-# Reiniciar tudo
+# Reiniciar
 cd ~/tamarcado-api
 docker-compose -f docker-compose.prod.yml --env-file .env.prod restart
 
-# Atualizar aplicação manualmente
+# Atualizar aplicação (novo deploy manual)
 cd ~/tamarcado-api
 git pull
 docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
@@ -725,59 +395,68 @@ docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 free -m
 docker stats --no-stream
 
-# Backup do banco
-docker exec tamarcado-postgres pg_dump -U tamarcado tamarcado > backup_$(date +%Y%m%d).sql
+# Backup do banco (via RDS)
+pg_dump -h ENDPOINT_RDS -U tamarcado -d tamarcado > backup_$(date +%Y%m%d).sql
 ```
 
----
+## No seu PC (PowerShell)
 
-## Parar Tudo (Economizar)
+```powershell
+# Conectar no EC2
+ssh -i "$env:USERPROFILE\.ssh\tamarcado-key.pem" ec2-user@SEU_IP_PUBLICO
 
-```bash
-# Parar containers (EC2 continua rodando)
-cd ~/tamarcado-api
-docker-compose -f docker-compose.prod.yml --env-file .env.prod down
-
-# Parar EC2 inteiro
+# Parar EC2 (para economizar)
 aws ec2 stop-instances --instance-ids i-xxxxx
+
+# Iniciar EC2
+aws ec2 start-instances --instance-ids i-xxxxx
 
 # Parar RDS (CUIDADO: reinicia sozinho após 7 dias!)
 aws rds stop-db-instance --db-instance-identifier tamarcado-db
-```
 
-**Custos quando parado (Free Tier):**
-- EC2 parado: $0
-- RDS parado: $0 (mas reinicia após 7 dias!)
-- EBS: $0 (free tier até 30GB)
-- Upstash: $0
+# Iniciar RDS
+aws rds start-db-instance --db-instance-identifier tamarcado-db
 
----
-
-## Monitorar Custos
-
-Via Console: **AWS** > **Billing** > **Bills**
-
-```bash
-# Via CLI
-aws ce get-cost-and-usage \
-  --time-period Start=$(date +%Y-%m-01),End=$(date +%Y-%m-%d) \
-  --granularity MONTHLY \
+# Ver custos do mês atual
+aws ce get-cost-and-usage `
+  --time-period Start=$(Get-Date -Format "yyyy-MM-01"),End=$(Get-Date -Format "yyyy-MM-dd") `
+  --granularity MONTHLY `
   --metrics BlendedCost
 ```
 
 ---
 
-## Após Free Tier Expirar (12 meses)
+# PARAR/ECONOMIZAR
+
+```powershell
+# Parar EC2 (PowerShell)
+aws ec2 stop-instances --instance-ids i-xxxxx
+
+# Parar RDS (PowerShell)
+aws rds stop-db-instance --db-instance-identifier tamarcado-db
+```
+
+| Recurso | Rodando | Parado |
+|---------|---------|--------|
+| EC2 | $0 (free tier) | $0 |
+| RDS | $0 (free tier) | $0 (reinicia após 7 dias!) |
+| EBS 20GB | $0 (free tier) | $0 (free tier) |
+| Upstash | $0 | $0 |
+
+---
+
+# APÓS FREE TIER EXPIRAR (12 meses)
 
 Duas opções:
-1. **Manter na AWS (~$7/mês):** Use EC2 t4g.micro + PostgreSQL no Docker (sem RDS)
+
+1. **Manter na AWS (~$7/mês):** EC2 t4g.micro + PostgreSQL no Docker (sem RDS)
 2. **Migrar para profissional (~$90/mês):** ECS Fargate + RDS Multi-AZ + ALB
 
 O código já está preparado para ambas as opções!
 
 ---
 
-## Checklist Final
+# CHECKLIST FINAL
 
 - [ ] Conta Upstash criada (Redis grátis)
 - [ ] Budget alert configurado ($0)
@@ -786,22 +465,21 @@ O código já está preparado para ambas as opções!
 - [ ] EC2 t3.micro criado (free tier)
 - [ ] Docker + Docker Compose instalados
 - [ ] Swap de 1GB configurado
-- [ ] .env.prod configurado com endpoint RDS
+- [ ] `.env.prod` configurado com endpoint RDS
 - [ ] `docker-compose up` rodando
 - [ ] Health check funcionando
 - [ ] GitHub Secrets configurados (CI/CD)
 
 ---
 
-## Próximos Passos para Portfólio
+# PORTFÓLIO
 
-1. **Compre um domínio** (~$12/ano no Registro.br ou Namecheap)
-2. **Configure HTTPS** com Let's Encrypt (grátis)
-3. **Aponte o domínio** para o IP do EC2
-4. **Documente o projeto** no GitHub
-5. **Adicione no LinkedIn** como projeto pessoal
+1. Compre um domínio (~$12/ano no Registro.br ou Namecheap)
+2. Configure HTTPS com Let's Encrypt (grátis) - Passo 12
+3. Aponte o domínio para o IP do EC2
+4. Documente o projeto no GitHub
+5. Adicione no LinkedIn como projeto pessoal
 
-Exemplo de URL para portfólio:
 ```
 https://api.tamarcado.seudominio.com.br/api/v1/swagger-ui.html
 ```
@@ -809,57 +487,40 @@ https://api.tamarcado.seudominio.com.br/api/v1/swagger-ui.html
 ---
 ---
 
-# PRÓXIMOS PASSOS: Upload de Imagens com S3
+# FUTURO: Upload de Imagens com S3
 
 Quando quiser adicionar upload de fotos de perfil, portfólio, etc.
 
 ## Arquitetura com S3
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         Upload de Imagem                             │
-│                                                                      │
-│  App Mobile ──▶ API (EC2) ──▶ S3 Bucket ──▶ CloudFront (CDN)        │
-│       │              │              │              │                 │
-│       │              │              │              ▼                 │
-│       │              │              │         URL pública            │
-│       │              │              │              │                 │
-│       │              ▼              │              │                 │
-│       │         RDS (salva URL) ◀──┴──────────────┘                 │
-│       │                                                              │
-│       └─────────── Exibe imagem via URL do S3/CloudFront            │
-└─────────────────────────────────────────────────────────────────────┘
+App Mobile --> API (EC2) --> S3 Bucket --> CloudFront (CDN)
+                 |                              |
+                 v                              v
+            RDS (salva URL) <------------- URL pública
 ```
 
-## Custos S3 (Free Tier - Sempre Grátis)
+## Custos S3
 
 | Recurso | Free Tier | Observação |
 |---------|-----------|------------|
-| Armazenamento | 5GB | ~2.500 fotos de 2MB |
+| Armazenamento | 5GB (sempre grátis) | ~2.500 fotos de 2MB |
 | PUT/POST | 2.000/mês | Upload de imagens |
 | GET | 20.000/mês | Download de imagens |
 | Transferência | 100GB/mês (12 meses) | Depois $0.09/GB |
 
-## Passo 1: Criar Bucket S3
+## Criar Bucket S3 (PowerShell)
 
-```bash
-# Via AWS CLI
-aws s3api create-bucket \
-  --bucket tamarcado-images \
-  --region sa-east-1 \
+```powershell
+aws s3api create-bucket `
+  --bucket tamarcado-images `
+  --region sa-east-1 `
   --create-bucket-configuration LocationConstraint=sa-east-1
-
-# Configurar para acesso público de leitura (imagens)
-aws s3api put-public-access-block \
-  --bucket tamarcado-images \
-  --public-access-block-configuration \
-  "BlockPublicAcls=false,IgnorePublicAcls=false,BlockPublicPolicy=false,RestrictPublicBuckets=false"
 ```
 
-## Passo 2: Adicionar Dependência no pom.xml
+## Dependência (pom.xml)
 
 ```xml
-<!-- AWS SDK for S3 -->
 <dependency>
     <groupId>software.amazon.awssdk</groupId>
     <artifactId>s3</artifactId>
@@ -867,19 +528,16 @@ aws s3api put-public-access-block \
 </dependency>
 ```
 
-## Passo 3: Configurar application-prod.yml
+## Configuração (application-prod.yml)
 
 ```yaml
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET:tamarcado-images}
     region: ${AWS_REGION:sa-east-1}
-  credentials:
-    access-key: ${AWS_ACCESS_KEY_ID}
-    secret-key: ${AWS_SECRET_ACCESS_KEY}
 ```
 
-## Passo 4: Criar S3Service
+## S3Service (exemplo)
 
 ```java
 @Service
@@ -918,36 +576,18 @@ public class S3Service {
 }
 ```
 
-## Passo 5: Endpoint de Upload
+## Pastas S3 por Entidade
 
-```java
-@PostMapping("/upload/profile-image")
-public ResponseEntity<Map<String, String>> uploadProfileImage(
-        @RequestParam("file") MultipartFile file,
-        @AuthenticationPrincipal UserDetails user) {
+| Entidade | Pasta S3 |
+|----------|----------|
+| User (perfil) | `profiles/{userId}/` |
+| Professional (perfil) | `professionals/{id}/profile/` |
+| Professional (portfólio) | `professionals/{id}/portfolio/` |
+| Service | `services/{id}/` |
 
-    String imageUrl = s3Service.uploadImage(file, "profiles/" + user.getUsername());
+## Variáveis Adicionais no `.env.prod`
 
-    // Atualizar URL no banco
-    userService.updateProfileImage(user.getUsername(), imageUrl);
-
-    return ResponseEntity.ok(Map.of("imageUrl", imageUrl));
-}
 ```
-
-## Casos de Uso no Tá Marcado
-
-| Entidade | Pasta S3 | Exemplo |
-|----------|----------|---------|
-| User (perfil) | `profiles/{userId}/` | Foto de perfil do cliente |
-| Professional (perfil) | `professionals/{id}/profile/` | Foto do profissional |
-| Professional (portfólio) | `professionals/{id}/portfolio/` | Trabalhos realizados |
-| Service | `services/{id}/` | Imagens do serviço |
-
-## Variáveis de Ambiente Adicionais
-
-```bash
-# Adicionar ao ~/.env no EC2
 AWS_S3_BUCKET=tamarcado-images
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=...
@@ -959,106 +599,91 @@ AWS_REGION=sa-east-1
 
 # SYSTEM DESIGN - Tá Marcado! API
 
-Visão completa da arquitetura do sistema.
-
 ## Visão Geral
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            TÁ MARCADO! - SYSTEM DESIGN                           │
-└─────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        TÁ MARCADO! - SYSTEM DESIGN                         │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-                                 ┌─────────────┐
-                                 │   Clients   │
-                                 │ Mobile/Web  │
-                                 └──────┬──────┘
-                                        │
-                                        ▼
-                              ┌─────────────────┐
-                              │   CloudFront    │ (CDN - futuro)
-                              │   (opcional)    │
-                              └────────┬────────┘
-                                       │
-                    ┌──────────────────┼──────────────────┐
-                    │                  │                  │
-                    ▼                  ▼                  ▼
-           ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-           │  Static Files │  │   API REST    │  │    Images     │
-           │  (Frontend)   │  │   (Backend)   │  │   (S3)        │
-           │   Vercel/S3   │  │   EC2/ECS     │  │               │
-           └───────────────┘  └───────┬───────┘  └───────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-           ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
-           │   PostgreSQL  │  │    Redis      │  │   External    │
-           │   (RDS)       │  │  (Upstash)    │  │   Services    │
-           │               │  │   Cache       │  │  Nominatim    │
-           └───────────────┘  └───────────────┘  │  ViaCEP       │
-                                                 └───────────────┘
+                             ┌─────────────┐
+                             │   Clients   │
+                             │ Mobile/Web  │
+                             └──────┬──────┘
+                                    │
+                                    ▼
+                          ┌─────────────────┐
+                          │   CloudFront    │ (CDN - futuro)
+                          └────────┬────────┘
+                                   │
+                ┌──────────────────┼──────────────────┐
+                │                  │                   │
+                ▼                  ▼                   ▼
+       ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+       │  Static Files │  │   API REST    │  │    Images     │
+       │  (Frontend)   │  │   (Backend)   │  │   (S3)        │
+       │   Vercel/S3   │  │   EC2/ECS     │  │               │
+       └───────────────┘  └───────┬───────┘  └───────────────┘
+                                  │
+                ┌─────────────────┼─────────────────┐
+                │                 │                  │
+                ▼                 ▼                  ▼
+       ┌───────────────┐  ┌───────────────┐  ┌───────────────┐
+       │  PostgreSQL   │  │    Redis      │  │   External    │
+       │  (RDS)        │  │  (Upstash)    │  │   Nominatim   │
+       └───────────────┘  └───────────────┘  │   ViaCEP      │
+                                             └───────────────┘
 ```
 
-## Arquitetura de Camadas (Hexagonal)
+## Arquitetura Hexagonal
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              ADAPTER LAYER (IN)                                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
-│  │    Auth     │ │    User     │ │Professional │ │ Appointment │ ...           │
-│  │ Controller  │ │ Controller  │ │ Controller  │ │ Controller  │               │
-│  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘               │
-└─────────┼───────────────┼───────────────┼───────────────┼───────────────────────┘
-          │               │               │               │
-          ▼               ▼               ▼               ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            APPLICATION LAYER                                     │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
-│  │    Auth     │ │    User     │ │Professional │ │ Appointment │ ...           │
-│  │   Service   │ │   Service   │ │   Service   │ │   Service   │               │
-│  └──────┬──────┘ └──────┬──────┘ └──────┬──────┘ └──────┬──────┘               │
-│         │               │               │               │                        │
-│         └───────────────┴───────┬───────┴───────────────┘                        │
-│                                 │                                                │
-│                          ┌──────▼──────┐                                         │
-│                          │    Ports    │ (Interfaces)                            │
-│                          │   (out)     │                                         │
-│                          └──────┬──────┘                                         │
-└─────────────────────────────────┼────────────────────────────────────────────────┘
-                                  │
-┌─────────────────────────────────┼────────────────────────────────────────────────┐
-│                          DOMAIN LAYER                                            │
-│                                 │                                                │
-│  ┌─────────────┐ ┌─────────────┐│┌─────────────┐ ┌─────────────┐                │
-│  │    User     │ │Professional │││ Appointment │ │   Review    │ ...            │
-│  │   Entity    │ │   Entity    │││   Entity    │ │   Entity    │                │
-│  └─────────────┘ └─────────────┘│└─────────────┘ └─────────────┘                │
-│                                 │                                                │
-└─────────────────────────────────┼────────────────────────────────────────────────┘
-                                  │
-┌─────────────────────────────────┼────────────────────────────────────────────────┐
-│                         ADAPTER LAYER (OUT)                                      │
-│                                 │                                                │
-│  ┌─────────────┐ ┌─────────────┴─────────────┐ ┌─────────────┐                  │
-│  │    JPA      │ │        Redis              │ │  Geocoding  │                  │
-│  │ Repository  │ │        Cache              │ │   Client    │                  │
-│  └──────┬──────┘ └───────────┬───────────────┘ └──────┬──────┘                  │
-└─────────┼────────────────────┼────────────────────────┼──────────────────────────┘
-          │                    │                        │
-          ▼                    ▼                        ▼
-    ┌───────────┐        ┌───────────┐           ┌───────────┐
-    │ PostgreSQL│        │   Redis   │           │ Nominatim │
-    │   (RDS)   │        │ (Upstash) │           │  ViaCEP   │
-    └───────────┘        └───────────┘           └───────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          ADAPTER LAYER (IN)                              │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ ┌─────────────┐           │
+│  │   Auth   │ │   User   │ │ Professional │ │ Appointment │ ...       │
+│  │Controller│ │Controller│ │  Controller  │ │ Controller  │           │
+│  └────┬─────┘ └────┬─────┘ └──────┬───────┘ └──────┬──────┘           │
+└───────┼─────────────┼──────────────┼────────────────┼──────────────────┘
+        ▼             ▼              ▼                ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        APPLICATION LAYER                                 │
+│  ┌──────────┐ ┌──────────┐ ┌──────────────┐ ┌─────────────┐           │
+│  │   Auth   │ │   User   │ │ Professional │ │ Appointment │ ...       │
+│  │ Service  │ │ Service  │ │   Service    │ │   Service   │           │
+│  └────┬─────┘ └────┬─────┘ └──────┬───────┘ └──────┬──────┘           │
+│       └─────────────┴──────┬──────┴─────────────────┘                   │
+│                            ▼                                             │
+│                     ┌──────────┐                                         │
+│                     │  Ports   │ (Interfaces)                           │
+│                     └────┬─────┘                                         │
+└──────────────────────────┼───────────────────────────────────────────────┘
+                           ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                          DOMAIN LAYER                                     │
+│  ┌──────────┐ ┌──────────────┐ ┌─────────────┐ ┌──────────┐           │
+│  │   User   │ │ Professional │ │ Appointment │ │  Review  │ ...       │
+│  │  Entity  │ │    Entity    │ │   Entity    │ │  Entity  │           │
+│  └──────────┘ └──────────────┘ └─────────────┘ └──────────┘           │
+└──────────────────────────────────────────────────────────────────────────┘
+                           ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       ADAPTER LAYER (OUT)                                 │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐                    │
+│  │     JPA      │ │    Redis     │ │  Geocoding   │                    │
+│  │  Repository  │ │    Cache     │ │   Client     │                    │
+│  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘                    │
+└─────────┼────────────────┼────────────────┼────────────────────────────┘
+          ▼                ▼                ▼
+    ┌───────────┐    ┌───────────┐    ┌───────────┐
+    │ PostgreSQL│    │   Redis   │    │ Nominatim │
+    │   (RDS)   │    │ (Upstash) │    │  ViaCEP   │
+    └───────────┘    └───────────┘    └───────────┘
 ```
 
 ## Modelo de Dados (ERD)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           ENTITY RELATIONSHIP DIAGRAM                            │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
 ┌──────────────────┐       ┌──────────────────┐       ┌──────────────────┐
 │      users       │       │   professionals  │       │     services     │
 ├──────────────────┤       ├──────────────────┤       ├──────────────────┤
@@ -1103,10 +728,6 @@ Visão completa da arquitetura do sistema.
 ## Fluxo de Autenticação
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                            AUTHENTICATION FLOW                                   │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
     Client                    API                     Database
       │                        │                          │
       │  POST /auth/login      │                          │
@@ -1124,7 +745,6 @@ Visão completa da arquitetura do sistema.
       │   expiresIn}           │                          │
       │◄───────────────────────│                          │
       │                        │                          │
-      │                        │                          │
       │  GET /api/resource     │                          │
       │  Header: Bearer <JWT>  │                          │
       │───────────────────────►│                          │
@@ -1139,240 +759,72 @@ Visão completa da arquitetura do sistema.
 ## Fluxo de Agendamento
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           APPOINTMENT BOOKING FLOW                               │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-  Client App           API              Cache           Database        Professional
-     │                  │                 │                 │                 │
-     │ Search services  │                 │                 │                 │
-     │─────────────────►│                 │                 │                 │
-     │                  │ Check cache     │                 │                 │
-     │                  │────────────────►│                 │                 │
-     │                  │ Cache miss      │                 │                 │
-     │                  │◄────────────────│                 │                 │
-     │                  │ Query DB        │                 │                 │
-     │                  │────────────────────────────────►│                 │
-     │                  │◄────────────────────────────────│                 │
-     │                  │ Store in cache  │                 │                 │
-     │                  │────────────────►│                 │                 │
-     │  Services list   │                 │                 │                 │
-     │◄─────────────────│                 │                 │                 │
-     │                  │                 │                 │                 │
-     │ Get availability │                 │                 │                 │
-     │─────────────────►│                 │                 │                 │
-     │                  │ Query appointments               │                 │
-     │                  │────────────────────────────────►│                 │
-     │  Available slots │                 │                 │                 │
-     │◄─────────────────│                 │                 │                 │
-     │                  │                 │                 │                 │
-     │ Book appointment │                 │                 │                 │
-     │─────────────────►│                 │                 │                 │
-     │                  │ Create appointment               │                 │
-     │                  │────────────────────────────────►│                 │
-     │                  │ Invalidate cache│                 │                 │
-     │                  │────────────────►│                 │                 │
-     │                  │                 │                 │   Notification  │
-     │                  │─────────────────────────────────────────────────►│
-     │  Confirmation    │                 │                 │                 │
-     │◄─────────────────│                 │                 │                 │
+  Client App           API              Cache           Database
+     │                  │                 │                 │
+     │ Search services  │                 │                 │
+     │─────────────────►│ Check cache     │                 │
+     │                  │────────────────►│                 │
+     │                  │ Cache miss      │                 │
+     │                  │◄────────────────│                 │
+     │                  │ Query DB ───────────────────────►│
+     │                  │◄────────────────────────────────│
+     │                  │ Store in cache ►│                 │
+     │  Services list   │                 │                 │
+     │◄─────────────────│                 │                 │
+     │                  │                 │                 │
+     │ Book appointment │                 │                 │
+     │─────────────────►│ Create ─────────────────────────►│
+     │                  │ Invalidate ────►│                 │
+     │  Confirmation    │                 │                 │
+     │◄─────────────────│                 │                 │
 ```
 
 ## Estratégia de Cache
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              CACHING STRATEGY                                    │
-└─────────────────────────────────────────────────────────────────────────────────┘
+| Cache Key | TTL | Invalidação |
+|-----------|-----|-------------|
+| `geocoding:coords:{address}` | 30 dias | Nunca |
+| `geocoding:address:{cep}` | 30 dias | Nunca |
+| `search:services:{query}:{page}` | 1 hora | On service create/update |
+| `professional:detail:{id}` | 30 min | On profile update |
+| `professional:dashboard:{id}` | 5 min | On new appointment/review |
+| `client:dashboard:{id}` | 5 min | On new appointment |
+| `services:professional:{id}` | 30 min | On service CRUD |
 
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│  Cache Key Pattern              │  TTL        │  Invalidation                   │
-├─────────────────────────────────┼─────────────┼─────────────────────────────────┤
-│  geocoding:coords:{address}     │  30 days    │  Never (addresses don't change) │
-│  geocoding:address:{cep}        │  30 days    │  Never                          │
-│  search:services:{query}:{page} │  1 hour     │  On service create/update       │
-│  professional:detail:{id}       │  30 min     │  On profile update              │
-│  professional:dashboard:{id}    │  5 min      │  On new appointment/review      │
-│  client:dashboard:{id}          │  5 min      │  On new appointment             │
-│  services:professional:{id}     │  30 min     │  On service CRUD                │
-└─────────────────────────────────┴─────────────┴─────────────────────────────────┘
-
-                           Cache-Aside Pattern
-
-     ┌─────────────────────────────────────────────────────────┐
-     │                        Request                          │
-     └────────────────────────────┬────────────────────────────┘
-                                  │
-                                  ▼
-                    ┌─────────────────────────┐
-                    │     Check Redis Cache   │
-                    └────────────┬────────────┘
-                                 │
-                    ┌────────────┴────────────┐
-                    │                         │
-              Cache HIT                  Cache MISS
-                    │                         │
-                    ▼                         ▼
-           ┌───────────────┐      ┌────────────────────┐
-           │ Return cached │      │ Query PostgreSQL   │
-           │     data      │      └─────────┬──────────┘
-           └───────────────┘                │
-                                            ▼
-                                 ┌────────────────────┐
-                                 │ Store in Redis     │
-                                 │ with TTL           │
-                                 └─────────┬──────────┘
-                                           │
-                                           ▼
-                                 ┌────────────────────┐
-                                 │ Return fresh data  │
-                                 └────────────────────┘
-```
+**Pattern:** Cache-Aside (check cache > miss > query DB > store in cache > return)
 
 ## Segurança
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              SECURITY LAYERS                                     │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│ Layer 1: Network Security                                                        │
-│ ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│ │  • VPC with private subnets for RDS                                         │ │
-│ │  • Security Groups (firewall rules)                                         │ │
-│ │  • HTTPS only (TLS 1.2+)                                                    │ │
-│ └─────────────────────────────────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ Layer 2: Application Security                                                    │
-│ ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│ │  • JWT Authentication (HMAC-SHA256)                                         │ │
-│ │  • BCrypt password hashing (strength 10)                                    │ │
-│ │  • Rate limiting (auth: 5/min, search: 60/min, general: 100/min)           │ │
-│ │  • CORS configuration                                                       │ │
-│ │  • Input validation (Bean Validation)                                       │ │
-│ └─────────────────────────────────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────────────────────────┤
-│ Layer 3: Data Security                                                           │
-│ ┌─────────────────────────────────────────────────────────────────────────────┐ │
-│ │  • Encrypted connections to RDS (SSL)                                       │ │
-│ │  • Encrypted connections to Redis (TLS)                                     │ │
-│ │  • Secrets in AWS Secrets Manager (prod) or env vars (dev)                 │ │
-│ │  • No sensitive data in logs                                                │ │
-│ └─────────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+| Camada | Mecanismos |
+|--------|------------|
+| **Rede** | VPC, Security Groups, HTTPS (TLS 1.2+) |
+| **Aplicação** | JWT (HMAC-SHA256), BCrypt, Rate Limiting, CORS, Bean Validation |
+| **Dados** | SSL para RDS, TLS para Redis, Secrets em .env.prod (nunca no Git) |
 
 ## Escalabilidade (Futuro)
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           SCALING ARCHITECTURE                                   │
-└─────────────────────────────────────────────────────────────────────────────────┘
+Current (Free Tier)              Future (Paid)
 
-                              Current (Free Tier)
-
-                                    │
-                                    ▼
-                            ┌───────────────┐
-                            │  EC2 t3.micro │
-                            │   (1 inst)    │
-                            └───────────────┘
-                                    │
-                                    ▼
-                                   Scale
-                                    │
-                                    ▼
-                              Future (Paid)
-
-                           ┌───────────────┐
-                           │     Route 53  │
-                           │      (DNS)    │
-                           └───────┬───────┘
-                                   │
-                           ┌───────▼───────┐
-                           │  CloudFront   │
-                           │    (CDN)      │
-                           └───────┬───────┘
-                                   │
-                           ┌───────▼───────┐
-                           │      ALB      │
-                           │ (Load Balancer)│
-                           └───────┬───────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-      ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-      │  ECS Fargate  │    │  ECS Fargate  │    │  ECS Fargate  │
-      │   Task 1      │    │   Task 2      │    │   Task N      │
-      └───────────────┘    └───────────────┘    └───────────────┘
-              │                    │                    │
-              └────────────────────┼────────────────────┘
-                                   │
-              ┌────────────────────┼────────────────────┐
-              │                    │                    │
-      ┌───────▼───────┐    ┌───────▼───────┐    ┌───────▼───────┐
-      │ RDS Primary   │    │ RDS Replica   │    │ ElastiCache   │
-      │ (Multi-AZ)    │    │ (Read Only)   │    │    Redis      │
-      └───────────────┘    └───────────────┘    └───────────────┘
+  EC2 t3.micro ──► RDS            Route 53 > CloudFront > ALB
+    (1 inst)                        │
+                                    ├── ECS Fargate Task 1
+                                    ├── ECS Fargate Task 2
+                                    └── ECS Fargate Task N
+                                          │
+                                    ├── RDS Primary (Multi-AZ)
+                                    ├── RDS Replica (Read)
+                                    └── ElastiCache Redis
 ```
 
-## Monitoramento
+## Tech Stack
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           MONITORING & OBSERVABILITY                             │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                                                                  │
-│    Logs (CloudWatch)           Metrics (Actuator)         Alerts               │
-│    ┌─────────────────┐         ┌─────────────────┐        ┌─────────────────┐  │
-│    │ Application logs│         │ /actuator/health│        │ Budget > $0     │  │
-│    │ Access logs     │         │ /actuator/metrics│       │ CPU > 80%       │  │
-│    │ Error logs      │         │ /actuator/info  │        │ Memory > 80%    │  │
-│    └─────────────────┘         └─────────────────┘        │ 5xx errors > 10 │  │
-│                                                            └─────────────────┘  │
-│                                                                                  │
-│    Health Checks               Tracing (Future)                                 │
-│    ┌─────────────────┐         ┌─────────────────┐                             │
-│    │ /health         │         │ AWS X-Ray       │                             │
-│    │ /health/liveness│         │ Request tracing │                             │
-│    │ /health/readiness│        │ Performance     │                             │
-│    └─────────────────┘         └─────────────────┘                             │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
-
-## Tech Stack Resumo
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              TECH STACK                                          │
-├──────────────────────────────────────────────────────────────────────────────────┤
-│                                                                                  │
-│  Backend                        Infrastructure              External Services   │
-│  ───────                        ──────────────              ─────────────────   │
-│  • Java 21                      • AWS EC2/ECS               • Upstash Redis     │
-│  • Spring Boot 3.2              • AWS RDS PostgreSQL        • Nominatim API     │
-│  • Spring Security              • AWS S3 (futuro)           • ViaCEP API        │
-│  • Spring Data JPA              • AWS ECR                                       │
-│  • Hibernate                    • GitHub Actions                                │
-│  • Flyway                                                                       │
-│  • MapStruct                    Security                                        │
-│  • Lombok                       ────────                                        │
-│                                 • JWT (JJWT)                                    │
-│  Database                       • BCrypt                                        │
-│  ────────                       • HTTPS/TLS                                     │
-│  • PostgreSQL 16                • CORS                                          │
-│  • Redis 7                                                                      │
-│                                 Documentation                                   │
-│  Testing                        ─────────────                                   │
-│  ───────                        • OpenAPI 3.0                                   │
-│  • JUnit 5                      • Swagger UI                                    │
-│  • Mockito                                                                      │
-│  • Testcontainers                                                               │
-│  • Rest Assured                                                                 │
-│                                                                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
-```
+| Categoria | Tecnologias |
+|-----------|-------------|
+| **Backend** | Java 21, Spring Boot 3.2, Spring Security, Spring Data JPA, Flyway, MapStruct, Lombok |
+| **Banco** | PostgreSQL 16 (RDS), Redis 7 (Upstash) |
+| **Infra** | AWS EC2, RDS, S3 (futuro), GitHub Actions |
+| **Segurança** | JWT (JJWT), BCrypt, HTTPS/TLS, CORS |
+| **Testes** | JUnit 5, Mockito, Testcontainers, Rest Assured |
+| **Docs** | OpenAPI 3.0, Swagger UI |
+| **Frontend** | React Native, Expo 51, Redux Toolkit, TypeScript |
