@@ -72,6 +72,8 @@ geocoding:
   api:
     enabled: true
     provider: nominatim
+    viacep:
+      base-url: https://viacep.com.br/ws
     nominatim:
       base-url: https://nominatim.openstreetmap.org
 

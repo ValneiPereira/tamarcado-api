@@ -5,6 +5,46 @@
 
 Backend API desenvolvida com Spring Boot 3.2+ e Java 21 seguindo os princípios de **Clean Architecture** e **Hexagonal Architecture (Ports & Adapters)**.
 
+## ☁️ Deploy na AWS (Free Tier)
+
+Esta aplicação está hospedada na **AWS** utilizando o **Free Tier**, para fins de **estudo e portfólio**. A infraestrutura utiliza:
+
+- **EC2 (t3.micro)** - Free Tier, servidor da aplicação
+- **PostgreSQL** - Banco de dados relacional
+- **Redis** - Cache em memória
+
+
+> **Nota:** O ambiente na AWS é utilizado exclusivamente para fins educacionais e de portfólio, demonstrando conhecimentos em deploy, infraestrutura cloud e DevOps.
+
+## ⚙️ CI/CD - GitHub Actions
+
+O projeto possui uma esteira de integração e deploy contínuo configurada com **GitHub Actions**, fazendo deploy automático na AWS.
+
+### Workflows
+
+| Workflow | Trigger | Descrição |
+|---|---|---|
+| **Deploy to EC2** | Push em `main`/`master` | Roda os testes, conecta via SSH na EC2 e faz deploy com Docker Compose |
+| **Build, Test & SonarCloud** | Push/PR em `main`/`master`/`develop` | Roda build, testes e análise estática no SonarCloud |
+
+### Fluxo de Deploy
+
+1. Ao fazer merge de um PR para `main`/`master`, o workflow é disparado automaticamente
+2. Os testes são executados (`mvn verify`)
+3. Se os testes passam, o workflow conecta via SSH na instância EC2
+4. O código é atualizado e a aplicação é reconstruída com `docker-compose`
+5. Um health check valida que a API subiu corretamente
+
+### Secrets necessários no GitHub
+
+Configurar em **Settings > Secrets and variables > Actions**:
+
+| Secret | Descrição |
+|---|---|
+| `EC2_HOST` | IP público (ou Elastic IP) da instância EC2 |
+| `EC2_USERNAME` | Usuário SSH da instância (ex: `ec2-user`) |
+| `EC2_SSH_KEY` | Conteúdo do arquivo `.pem` (chave privada SSH) |
+
 ## 🚀 Tecnologias
 
 ### Backend
@@ -244,17 +284,6 @@ docker-compose down
 ```bash
 docker-compose logs -f
 ```
-
-## ☁️ Deploy na AWS (Free Tier)
-
-Esta aplicação está hospedada na **AWS** utilizando o **Free Tier**, para fins de **estudo e portfólio**. A infraestrutura utiliza:
-
-- **EC2 (t3.micro)** - Free Tier, servidor da aplicação
-- **PostgreSQL** - Banco de dados relacional
-- **Redis** - Cache em memória
-
-
-> **Nota:** O ambiente na AWS é utilizado exclusivamente para fins educacionais e de portfólio, demonstrando conhecimentos em deploy, infraestrutura cloud e DevOps.
 
 ## 📝 Licença
 
