@@ -285,6 +285,17 @@ docker-compose down
 docker-compose logs -f
 ```
 
+## ☁️ Deploy na AWS (Free Tier)
+
+Esta aplicação está hospedada na **AWS** utilizando o **Free Tier**, para fins de **estudo e portfólio**. A infraestrutura utiliza:
+
+- **EC2 (t3.micro)** - Free Tier, servidor da aplicação
+- **PostgreSQL** - Banco de dados relacional
+- **Redis** - Cache em memória
+
+
+> **Nota:** O ambiente na AWS é utilizado exclusivamente para fins educacionais e de portfólio, demonstrando conhecimentos em deploy, infraestrutura cloud e DevOps.
+
 ## 📝 Licença
 
 Este projeto é proprietário.
