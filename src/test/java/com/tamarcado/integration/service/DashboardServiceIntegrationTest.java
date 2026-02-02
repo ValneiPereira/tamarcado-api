@@ -103,7 +103,7 @@ class DashboardServiceIntegrationTest extends AbstractIntegrationTestWithoutDock
                 .client(client)
                 .professional(prof)
                 .serviceOffering(service)
-                .date(LocalDate.now().minusDays(5))
+                .date(LocalDate.now().withDayOfMonth(1))
                 .time(LocalTime.of(14, 0))
                 .status(AppointmentStatus.COMPLETED)
                 .build();
