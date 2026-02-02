@@ -35,9 +35,12 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Environment
+# Environment (NEVER commit real secrets)
 .env
 .env.local
+.env.prod
+.env.staging
+*.pem
 
 # Documentation
 /docs/
