@@ -43,6 +43,9 @@ Thumbs.db
 .env.prod.example
 *.pem
 
+# Claude
+.claude/
+
 # Documentation
 /docs/
 
