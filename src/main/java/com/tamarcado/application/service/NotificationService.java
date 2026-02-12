@@ -161,20 +161,9 @@ public class NotificationService {
             String title,
             String message,
             Map<String, Object> data) {
-        log.debug("Enviando notificação do tipo {} para usuário {}", type, userId);
-
-        User user = userRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
-
-        Notification notification = notificationMapper.toEntity(user, type, title, message, data);
-        Notification savedNotification = notificationRepository.save(notification);
-
-        log.info("Notificação {} criada para usuário {}", savedNotification.getId(), userId);
-
-        // TODO: Enviar push notification via Firebase Cloud Messaging
-        // sendPushNotification(userId, type, title, message, data);
-
-        return savedNotification;
+        // TODO: Notificações desabilitadas temporariamente - reativar quando corrigir mapeamento jsonb
+        log.debug("Notificações desabilitadas temporariamente. Tipo: {} para usuário: {}", type, userId);
+        return null;
     }
 
     /**

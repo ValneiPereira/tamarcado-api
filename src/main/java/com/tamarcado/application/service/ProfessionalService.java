@@ -221,6 +221,18 @@ public class ProfessionalService {
     }
 
     /**
+     * Busca horários de atendimento de um profissional pelo ID (público)
+     */
+    @Transactional(readOnly = true)
+    public List<BusinessHoursResponse> getBusinessHoursByProfessionalId(UUID professionalId) {
+        professionalRepository.findById(professionalId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
+
+        List<BusinessHours> hours = businessHoursRepository.findByProfessionalId(professionalId);
+        return businessHoursMapper.toResponseList(hours);
+    }
+
+    /**
      * Busca horários de atendimento do profissional autenticado
      */
     @Transactional(readOnly = true)
