@@ -15,20 +15,18 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        
+
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",
-            "http://localhost:4200",
-            "http://localhost:8081",
-            "http://localhost:19006",
-            "exp://localhost:19000",
-            "http://localhost:8080"
-        ));
+        config.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://10.0.2.2:*",
+                "exp://localhost:*",
+                "https://*.tamarcado.com.br"));
         config.setAllowedHeaders(Arrays.asList("*"));
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setMaxAge(3600L);
-        
+
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
