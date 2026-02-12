@@ -8,15 +8,15 @@ EC2 (somente API) + RDS PostgreSQL (free tier) + Upstash Redis (grátis sempre).
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│              EC2 t3.micro (FREE TIER)                 │
+│              EC2 t3.micro (FREE TIER)                │
 │         2 vCPU | 1GB RAM | 750h/mês grátis           │
-│                                                       │
+│                                                      │
 │  ┌──────────────────────────────────────────────┐    │
-│  │  Docker: tamarcado-api (Java 21)              │    │
-│  │  ~700MB RAM disponível (só API, sem PG)       │    │
-│  │  port 8080                                    │    │
+│  │  Docker: tamarcado-api (Java 21)             │    │
+│  │  ~700MB RAM disponível (só API, sem PG)      │    │
+│  │  port 8080                                   │    │
 │  └──────────────┬───────────────────────────────┘    │
-│                 │   1GB Swap (segurança)              │
+│                 │   1GB Swap (segurança)             │
 └─────────────────┼────────────────────────────────────┘
                   │
         ┌─────────┴─────────┐
