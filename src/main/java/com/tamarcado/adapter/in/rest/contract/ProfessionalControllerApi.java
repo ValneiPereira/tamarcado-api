@@ -55,6 +55,12 @@ public interface ProfessionalControllerApi {
     ResponseEntity<ApiResponse<Void>> deleteService(
             @Parameter(description = "ID do serviço") @PathVariable UUID serviceId);
 
+    @GetMapping("/{id}/business-hours")
+    @Operation(summary = "Listar horários de atendimento do profissional (público)",
+        description = "Retorna os horários de atendimento de um profissional pelo ID")
+    ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> getBusinessHours(
+            @Parameter(description = "ID do profissional") @PathVariable UUID id);
+
     @GetMapping("/me/business-hours")
     @Operation(summary = "Listar horários de atendimento", description = "Retorna os horários de atendimento do profissional autenticado")
     @SecurityRequirement(name = "bearerAuth")

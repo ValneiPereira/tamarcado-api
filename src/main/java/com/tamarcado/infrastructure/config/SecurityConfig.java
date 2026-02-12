@@ -58,8 +58,9 @@ public class SecurityConfig {
                         // GET /professionals/{id} - visualização pública (mas não /professionals/me/**)
                         // Primeiro negamos /professionals/me/** para garantir que requer autenticação
                         .requestMatchers("/professionals/me/**").authenticated()
-                        // Depois permitimos GET /professionals/* (qualquer ID, mas não /me)
+                        // Depois permitimos GET /professionals/{id} e /professionals/{id}/business-hours
                         .requestMatchers(HttpMethod.GET, "/professionals/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/professionals/*/business-hours").permitAll()
 
                         // Demais endpoints requerem autenticação
                         .anyRequest().authenticated())

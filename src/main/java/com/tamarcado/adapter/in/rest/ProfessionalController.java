@@ -71,6 +71,14 @@ public class ProfessionalController implements ProfessionalControllerApi {
     }
 
     @Override
+    public ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> getBusinessHours(UUID id) {
+
+        log.debug("Buscando horários de atendimento do profissional: {}", id);
+        var hours = professionalService.getBusinessHoursByProfessionalId(id);
+        return ResponseEntity.ok(ApiResponse.success(hours, "Horários encontrados com sucesso"));
+    }
+
+    @Override
     public ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> getMyBusinessHours() {
 
         log.debug("Buscando horários de atendimento do profissional autenticado");
