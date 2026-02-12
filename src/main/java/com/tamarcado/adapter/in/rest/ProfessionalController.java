@@ -2,9 +2,11 @@ package com.tamarcado.adapter.in.rest;
 
 import com.tamarcado.adapter.in.rest.contract.ProfessionalControllerApi;
 import com.tamarcado.application.service.ProfessionalService;
+import com.tamarcado.shared.dto.request.BusinessHoursRequest;
 import com.tamarcado.shared.dto.request.CreateServiceRequest;
 import com.tamarcado.shared.dto.request.UpdateServiceRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
+import com.tamarcado.shared.dto.response.BusinessHoursResponse;
 import com.tamarcado.shared.dto.response.ProfessionalDetailResponse;
 import com.tamarcado.shared.dto.response.ServiceResponse;
 import lombok.RequiredArgsConstructor;
@@ -66,5 +68,21 @@ public class ProfessionalController implements ProfessionalControllerApi {
         log.debug("Deletando serviço {} do profissional autenticado", serviceId);
         professionalService.deleteService(serviceId);
         return ResponseEntity.ok(ApiResponse.success(null, "Serviço deletado com sucesso"));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> getMyBusinessHours() {
+
+        log.debug("Buscando horários de atendimento do profissional autenticado");
+        var hours = professionalService.getMyBusinessHours();
+        return ResponseEntity.ok(ApiResponse.success(hours, "Horários encontrados com sucesso"));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> updateMyBusinessHours(BusinessHoursRequest request) {
+
+        log.debug("Atualizando horários de atendimento do profissional autenticado");
+        var hours = professionalService.updateMyBusinessHours(request);
+        return ResponseEntity.ok(ApiResponse.success(hours, "Horários atualizados com sucesso"));
     }
 }

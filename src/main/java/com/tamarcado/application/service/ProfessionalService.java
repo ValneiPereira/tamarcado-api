@@ -1,23 +1,28 @@
 package com.tamarcado.application.service;
 
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
+import com.tamarcado.application.port.out.BusinessHoursRepositoryPort;
 import com.tamarcado.application.port.out.ProfessionalRepositoryPort;
 import com.tamarcado.application.port.out.ReviewRepositoryPort;
 import com.tamarcado.application.port.out.ServiceOfferingRepositoryPort;
 import com.tamarcado.application.port.out.UserRepositoryPort;
 import com.tamarcado.domain.model.appointment.AppointmentStatus;
+import com.tamarcado.domain.model.professional.BusinessHours;
 import com.tamarcado.domain.model.service.ServiceOffering;
 import com.tamarcado.domain.model.user.Address;
 import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.infrastructure.security.SecurityUtils;
+import com.tamarcado.shared.dto.request.BusinessHoursRequest;
 import com.tamarcado.shared.dto.request.CreateServiceRequest;
 import com.tamarcado.shared.dto.request.UpdateServiceRequest;
+import com.tamarcado.shared.dto.response.BusinessHoursResponse;
 import com.tamarcado.shared.dto.response.ProfessionalDetailResponse;
 import com.tamarcado.shared.dto.response.ReviewResponse;
 import com.tamarcado.shared.dto.response.ServiceResponse;
 import com.tamarcado.shared.exception.BusinessException;
 import com.tamarcado.shared.exception.ResourceNotFoundException;
 import com.tamarcado.shared.mapper.AddressMapper;
+import com.tamarcado.shared.mapper.BusinessHoursMapper;
 import com.tamarcado.shared.mapper.ProfessionalMapper;
 import com.tamarcado.shared.mapper.ReviewMapper;
 import com.tamarcado.shared.mapper.ServiceMapper;
@@ -29,6 +34,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,12 +49,14 @@ public class ProfessionalService {
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
     private final ReviewRepositoryPort reviewRepository;
     private final AppointmentRepositoryPort appointmentRepository;
+    private final BusinessHoursRepositoryPort businessHoursRepository;
     private final SearchService searchService;
     private final UserRepositoryPort userRepository;
     private final ProfessionalMapper professionalDtoMapper;
     private final ServiceMapper serviceDtoMapper;
     private final ReviewMapper reviewDtoMapper;
     private final AddressMapper addressDtoMapper;
+    private final BusinessHoursMapper businessHoursMapper;
 
     /**
      * Busca detalhes completos de um profissional por ID
@@ -208,6 +218,59 @@ public class ProfessionalService {
         serviceOfferingRepository.save(serviceOffering);
 
         log.info("Serviço {} desativado pelo profissional {}", serviceId, professional.getId());
+    }
+
+    /**
+     * Busca horários de atendimento do profissional autenticado
+     */
+    @Transactional(readOnly = true)
+    public List<BusinessHoursResponse> getMyBusinessHours() {
+        Professional professional = getCurrentProfessional();
+
+        List<BusinessHours> hours = businessHoursRepository.findByProfessionalId(professional.getId());
+
+        return businessHoursMapper.toResponseList(hours);
+    }
+
+    /**
+     * Atualiza horários de atendimento do profissional autenticado
+     * Substitui todos os horários existentes pelos novos
+     */
+    @Transactional
+    public List<BusinessHoursResponse> updateMyBusinessHours(BusinessHoursRequest request) {
+        Professional professional = getCurrentProfessional();
+
+        // Remover horários existentes
+        businessHoursRepository.deleteByProfessionalId(professional.getId());
+
+        // Criar novos horários
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+        List<BusinessHours> newHours = new ArrayList<>();
+
+        for (var item : request.hours()) {
+            LocalTime startTime = LocalTime.parse(item.startTime(), timeFormatter);
+            LocalTime endTime = LocalTime.parse(item.endTime(), timeFormatter);
+
+            if (endTime.isBefore(startTime) || endTime.equals(startTime)) {
+                throw new BusinessException(
+                        "Horário de fim deve ser posterior ao horário de início para o dia " + item.dayOfWeek());
+            }
+
+            BusinessHours bh = BusinessHours.builder()
+                    .professional(professional)
+                    .dayOfWeek(item.dayOfWeek())
+                    .startTime(startTime)
+                    .endTime(endTime)
+                    .active(item.active())
+                    .build();
+
+            newHours.add(bh);
+        }
+
+        List<BusinessHours> saved = businessHoursRepository.saveAll(newHours);
+        log.info("Horários de atendimento atualizados para profissional {}", professional.getId());
+
+        return businessHoursMapper.toResponseList(saved);
     }
 
     /**
