@@ -17,6 +17,7 @@ public record ProfessionalDetailResponse(
         ServiceType serviceType,
         BigDecimal averageRating,
         Integer totalRatings,
+        String description,
         AddressResponse address,
         Double distanceKm,
         List<ServiceResponse> services,

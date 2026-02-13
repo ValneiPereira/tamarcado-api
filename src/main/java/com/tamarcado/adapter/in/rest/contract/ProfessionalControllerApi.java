@@ -3,6 +3,7 @@ package com.tamarcado.adapter.in.rest.contract;
 import com.tamarcado.shared.constant.ApiConstants;
 import com.tamarcado.shared.dto.request.BusinessHoursRequest;
 import com.tamarcado.shared.dto.request.CreateServiceRequest;
+import com.tamarcado.shared.dto.request.UpdateDescriptionRequest;
 import com.tamarcado.shared.dto.request.UpdateServiceRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
 import com.tamarcado.shared.dto.response.BusinessHoursResponse;
@@ -65,6 +66,12 @@ public interface ProfessionalControllerApi {
     @Operation(summary = "Listar horários de atendimento", description = "Retorna os horários de atendimento do profissional autenticado")
     @SecurityRequirement(name = "bearerAuth")
     ResponseEntity<ApiResponse<List<BusinessHoursResponse>>> getMyBusinessHours();
+
+    @PutMapping("/me/description")
+    @Operation(summary = "Atualizar descrição do profissional", description = "Atualiza a descrição 'Sobre' do profissional autenticado")
+    @SecurityRequirement(name = "bearerAuth")
+    ResponseEntity<ApiResponse<Void>> updateMyDescription(
+            @Valid @RequestBody UpdateDescriptionRequest request);
 
     @PutMapping("/me/business-hours")
     @Operation(summary = "Atualizar horários de atendimento", description = "Salva ou atualiza os horários de atendimento do profissional autenticado")

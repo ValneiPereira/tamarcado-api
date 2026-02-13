@@ -46,6 +46,9 @@ public class Professional {
     @Builder.Default
     private Integer totalRatings = 0;
 
+    @Column(length = 500)
+    private String description;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean active = true;
