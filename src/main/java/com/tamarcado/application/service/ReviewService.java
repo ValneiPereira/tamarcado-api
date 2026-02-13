@@ -19,12 +19,15 @@ import com.tamarcado.shared.exception.ResourceNotFoundException;
 import com.tamarcado.shared.mapper.ReviewMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +46,7 @@ public class ReviewService {
      * Cria uma nova avaliação
      */
     @Transactional
+    @CacheEvict(value = "professionalDetail", allEntries = true)
     public ReviewResponse createReview(CreateReviewRequest request) {
         log.debug("Criando avaliação para agendamento {}", request.appointmentId());
 
@@ -177,9 +181,14 @@ public class ReviewService {
         Professional professional = professionalRepository.findById(professionalId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profissional não encontrado"));
 
-        // Atualizar média (se o profissional tiver campo para isso)
-        // Por enquanto, apenas logamos - pode ser implementado no futuro se necessário
-        log.info("Média de avaliação do profissional {}: {} (total: {} avaliações)",
+        professional.setAverageRating(
+                averageRating != null
+                        ? BigDecimal.valueOf(averageRating).setScale(2, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO);
+        professional.setTotalRatings(totalReviews != null ? totalReviews.intValue() : 0);
+        professionalRepository.save(professional);
+
+        log.info("Média de avaliação do profissional {} atualizada: {} (total: {} avaliações)",
                 professionalId, averageRating != null ? averageRating : 0.0, totalReviews);
     }
 }

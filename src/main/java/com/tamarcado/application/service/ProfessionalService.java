@@ -28,6 +28,7 @@ import com.tamarcado.shared.mapper.ReviewMapper;
 import com.tamarcado.shared.mapper.ServiceMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -225,6 +226,7 @@ public class ProfessionalService {
      * Atualiza a descrição do profissional autenticado
      */
     @Transactional
+    @CacheEvict(value = "professionalDetail", allEntries = true)
     public void updateMyDescription(String description) {
         Professional professional = getCurrentProfessional();
         professional.setDescription(description);

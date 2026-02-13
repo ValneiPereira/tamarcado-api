@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurer;
@@ -13,6 +14,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -76,6 +78,22 @@ public class CacheConfig implements CachingConfigurer {
                 .withInitialCacheConfigurations(cacheConfigurations)
                 .transactionAware()
                 .build();
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void clearCachesOnStartup(ApplicationReadyEvent event) {
+        try {
+            CacheManager cm = event.getApplicationContext().getBean(CacheManager.class);
+            cm.getCacheNames().forEach(name -> {
+                Cache cache = cm.getCache(name);
+                if (cache != null) {
+                    cache.clear();
+                    log.info("Cache '{}' limpo na inicialização", name);
+                }
+            });
+        } catch (Exception e) {
+            log.warn("Erro ao limpar caches na inicialização: {}", e.getMessage());
+        }
     }
 
     @Override
