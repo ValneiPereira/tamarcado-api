@@ -9,7 +9,8 @@
       "Bash(dir:*)",
       "Bash(flutter pub get:*)",
       "Bash(flutter analyze:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(mvn clean package:*)"
     ]
   }
 }

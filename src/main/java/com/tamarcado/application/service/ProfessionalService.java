@@ -112,6 +112,7 @@ public class ProfessionalService {
                 response.serviceType(),
                 response.averageRating(),
                 response.totalRatings(),
+                response.description(),
                 response.address(),
                 distance,
                 serviceResponses,
@@ -218,6 +219,17 @@ public class ProfessionalService {
         serviceOfferingRepository.save(serviceOffering);
 
         log.info("Serviço {} desativado pelo profissional {}", serviceId, professional.getId());
+    }
+
+    /**
+     * Atualiza a descrição do profissional autenticado
+     */
+    @Transactional
+    public void updateMyDescription(String description) {
+        Professional professional = getCurrentProfessional();
+        professional.setDescription(description);
+        professionalRepository.save(professional);
+        log.info("Descrição atualizada para profissional {}", professional.getId());
     }
 
     /**
