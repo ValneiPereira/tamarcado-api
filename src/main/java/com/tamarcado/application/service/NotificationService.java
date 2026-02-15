@@ -161,9 +161,24 @@ public class NotificationService {
             String title,
             String message,
             Map<String, Object> data) {
-        // TODO: Notificações desabilitadas temporariamente - reativar quando corrigir mapeamento jsonb
-        log.debug("Notificações desabilitadas temporariamente. Tipo: {} para usuário: {}", type, userId);
-        return null;
+        log.debug("Enviando notificação tipo {} para usuário {}", type, userId);
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .type(type)
+                .title(title)
+                .message(message)
+                .data(data)
+                .isRead(false)
+                .build();
+
+        Notification saved = notificationRepository.save(notification);
+        log.info("Notificação {} criada para usuário {}", saved.getId(), userId);
+
+        return saved;
     }
 
     /**

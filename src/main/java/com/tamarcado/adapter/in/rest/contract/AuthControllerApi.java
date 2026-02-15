@@ -1,10 +1,12 @@
 package com.tamarcado.adapter.in.rest.contract;
 
 import com.tamarcado.shared.constant.ApiConstants;
+import com.tamarcado.shared.dto.request.ForgotPasswordRequest;
 import com.tamarcado.shared.dto.request.LoginRequest;
 import com.tamarcado.shared.dto.request.RefreshTokenRequest;
 import com.tamarcado.shared.dto.request.RegisterClientRequest;
 import com.tamarcado.shared.dto.request.RegisterProfessionalRequest;
+import com.tamarcado.shared.dto.request.ResetPasswordRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
 import com.tamarcado.shared.dto.response.AuthResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,4 +37,12 @@ public interface AuthControllerApi {
     @PostMapping("/refresh-token")
     @Operation(summary = "Refresh token", description = "Gera novos tokens usando o refresh token")
     ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request);
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Esqueci a senha", description = "Envia um código de 6 dígitos por e-mail para redefinir a senha")
+    ResponseEntity<ApiResponse<Void>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request);
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Redefinir senha", description = "Redefine a senha usando o código recebido por e-mail")
+    ResponseEntity<ApiResponse<Void>> resetPassword(@Valid @RequestBody ResetPasswordRequest request);
 }

@@ -2,10 +2,12 @@ package com.tamarcado.adapter.in.rest;
 
 import com.tamarcado.adapter.in.rest.contract.AuthControllerApi;
 import com.tamarcado.application.service.AuthService;
+import com.tamarcado.shared.dto.request.ForgotPasswordRequest;
 import com.tamarcado.shared.dto.request.LoginRequest;
 import com.tamarcado.shared.dto.request.RefreshTokenRequest;
 import com.tamarcado.shared.dto.request.RegisterClientRequest;
 import com.tamarcado.shared.dto.request.RegisterProfessionalRequest;
+import com.tamarcado.shared.dto.request.ResetPasswordRequest;
 import com.tamarcado.shared.dto.response.ApiResponse;
 import com.tamarcado.shared.dto.response.AuthResponse;
 import lombok.RequiredArgsConstructor;
@@ -57,5 +59,17 @@ public class AuthController implements AuthControllerApi {
         log.debug("Recebida requisição de refresh token");
         var response = authService.refreshToken(request.refreshToken());
         return ResponseEntity.ok(ApiResponse.success(response, "Token atualizado com sucesso"));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Código de recuperação enviado para seu e-mail"));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponse<Void>> resetPassword(ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Senha redefinida com sucesso"));
     }
 }
