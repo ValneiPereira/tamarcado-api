@@ -19,6 +19,7 @@ public record AppointmentResponse(
         LocalTime time,
         String notes,
         AppointmentStatus status,
+        boolean reviewed,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}

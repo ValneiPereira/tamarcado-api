@@ -2,6 +2,7 @@ package com.tamarcado.application.service;
 
 import com.tamarcado.application.port.out.AppointmentRepositoryPort;
 import com.tamarcado.application.port.out.ProfessionalRepositoryPort;
+import com.tamarcado.application.port.out.ReviewRepositoryPort;
 import com.tamarcado.application.port.out.ServiceOfferingRepositoryPort;
 import com.tamarcado.application.port.out.UserRepositoryPort;
 import com.tamarcado.domain.model.appointment.Appointment;
@@ -41,6 +42,7 @@ public class AppointmentService {
     private final UserRepositoryPort userRepository;
     private final ProfessionalRepositoryPort professionalRepository;
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
+    private final ReviewRepositoryPort reviewRepository;
     private final AppointmentMapper appointmentMapper;
     private final SearchService searchService;
     private final NotificationService notificationService;
@@ -156,7 +158,18 @@ public class AppointmentService {
             appointments = appointmentRepository.findByClientId(client.getId());
         }
 
-        return appointmentMapper.toResponseList(appointments);
+        return appointmentMapper.toResponseList(appointments).stream()
+                .map(r -> {
+                    if (r.status() == AppointmentStatus.COMPLETED) {
+                        boolean reviewed = reviewRepository.existsByAppointmentId(r.id());
+                        return new AppointmentResponse(r.id(), r.professionalId(), r.professionalName(),
+                                r.professionalPhone(), r.clientId(), r.clientName(), r.service(),
+                                r.date(), r.time(), r.notes(), r.status(), reviewed,
+                                r.createdAt(), r.updatedAt());
+                    }
+                    return r;
+                })
+                .collect(Collectors.toList());
     }
 
     /**

@@ -21,6 +21,7 @@ public interface AppointmentMapper {
     @Mapping(target = "clientId", source = "client.id")
     @Mapping(target = "clientName", source = "client.name")
     @Mapping(target = "service", source = "serviceOffering")
+    @Mapping(target = "reviewed", constant = "false")
     AppointmentResponse toResponse(Appointment appointment);
 
     List<AppointmentResponse> toResponseList(List<Appointment> appointments);

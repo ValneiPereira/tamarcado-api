@@ -9,7 +9,6 @@ import com.tamarcado.domain.model.notification.NotificationType;
 import com.tamarcado.domain.model.user.User;
 import io.restassured.http.ContentType;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -21,7 +20,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Disabled("Notificações temporariamente desabilitadas")
 class NotificationControllerIntegrationTest extends AbstractIntegrationTestWithoutDocker {
 
     @Autowired

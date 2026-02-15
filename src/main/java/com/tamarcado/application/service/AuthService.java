@@ -1,18 +1,22 @@
 package com.tamarcado.application.service;
 
+import com.tamarcado.application.port.out.PasswordResetTokenRepositoryPort;
 import com.tamarcado.application.port.out.ProfessionalRepositoryPort;
 import com.tamarcado.application.port.out.ServiceOfferingRepositoryPort;
 import com.tamarcado.application.port.out.UserRepositoryPort;
 import com.tamarcado.domain.model.service.ServiceOffering;
 import com.tamarcado.domain.model.user.Address;
+import com.tamarcado.domain.model.user.PasswordResetToken;
 import com.tamarcado.domain.model.user.Professional;
 import com.tamarcado.domain.model.user.User;
 import com.tamarcado.domain.model.user.UserType;
 import com.tamarcado.infrastructure.security.JwtTokenProvider;
 import com.tamarcado.shared.constant.ErrorMessages;
+import com.tamarcado.shared.dto.request.ForgotPasswordRequest;
 import com.tamarcado.shared.dto.request.LoginRequest;
 import com.tamarcado.shared.dto.request.RegisterClientRequest;
 import com.tamarcado.shared.dto.request.RegisterProfessionalRequest;
+import com.tamarcado.shared.dto.request.ResetPasswordRequest;
 import com.tamarcado.shared.dto.response.AuthResponse;
 import com.tamarcado.shared.dto.response.UserResponse;
 import com.tamarcado.shared.exception.BusinessException;
@@ -30,6 +34,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Collections;
 
 @Slf4j
@@ -40,11 +46,13 @@ public class AuthService {
     private final UserRepositoryPort userRepository;
     private final ProfessionalRepositoryPort professionalRepository;
     private final ServiceOfferingRepositoryPort serviceOfferingRepository;
+    private final PasswordResetTokenRepositoryPort passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
     private final UserMapper userDtoMapper;
     private final AddressRequestMapper addressRequestMapper;
+    private final EmailService emailService;
 
     @Transactional
     public AuthResponse registerClient(RegisterClientRequest request) {
@@ -187,6 +195,58 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         return createAuthResponse(user);
+    }
+
+    @Transactional
+    public void forgotPassword(ForgotPasswordRequest request) {
+        log.info("Solicitação de recuperação de senha para: {}", request.email());
+
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new ResourceNotFoundException("E-mail não encontrado"));
+
+        // Remover tokens anteriores
+        passwordResetTokenRepository.deleteByUserId(user.getId());
+
+        // Gerar código de 6 dígitos
+        String code = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+
+        PasswordResetToken token = PasswordResetToken.builder()
+                .user(user)
+                .code(code)
+                .expiresAt(LocalDateTime.now().plusMinutes(15))
+                .build();
+
+        passwordResetTokenRepository.save(token);
+
+        // Enviar e-mail com o código
+        emailService.sendPasswordResetCode(user.getEmail(), user.getName(), code);
+
+        log.info("Código de recuperação enviado para usuário {}", user.getId());
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequest request) {
+        log.info("Redefinindo senha com código");
+
+        PasswordResetToken token = passwordResetTokenRepository.findByCode(request.code())
+                .orElseThrow(() -> new BusinessException("Código inválido ou expirado"));
+
+        if (token.getUsed()) {
+            throw new BusinessException("Este código já foi utilizado");
+        }
+
+        if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BusinessException("Código expirado. Solicite um novo link de recuperação");
+        }
+
+        User user = token.getUser();
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
+
+        token.setUsed(true);
+        passwordResetTokenRepository.save(token);
+
+        log.info("Senha redefinida com sucesso para usuário {}", user.getId());
     }
 
     private AuthResponse createAuthResponse(User user) {
